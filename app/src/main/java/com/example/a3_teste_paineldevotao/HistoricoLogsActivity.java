@@ -43,9 +43,9 @@ public class HistoricoLogsActivity extends AppCompatActivity {
         carregarDados();
     }
 
-    // Em HistoricoLogsActivity.java
+    //
     private void carregarDados() {
-        repository.carregarHistoricoLogs(new EnqueteRepository.HistoricoLogsCallback() { // <--- Correto (com 'H' maiúsculo)
+        repository.carregarHistoricoLogs(new EnqueteRepository.HistoricoLogsCallback() {
             @Override
             public void onHistoricoCarregado(List<Map<String, Object>> logs) {
                 LogsAdapter adapter = new LogsAdapter(logs);
