@@ -6,6 +6,7 @@ import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -26,6 +27,11 @@ import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
 
+import java.text.ParseException; // Importação necessária
+import java.text.SimpleDateFormat; // Importação necessária
+import java.util.Date; // Importação necessária
+import java.util.Locale; // Importação necessária
+
 /**
  * Tela principal do aplicativo (Painel de Votação).
  *
@@ -43,6 +49,9 @@ import com.google.firebase.firestore.ListenerRegistration;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "PainelVotacao";
+    // Formato de data e hora que deve ser usado para parsear a string do Firestore
+    private static final SimpleDateFormat DATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
 
     // =====================================================================
     //  Componentes de interface
@@ -57,6 +66,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtTotalC;
     private TextView txtTotalGeral;
     private TextView txtSeuVoto;
+    //----------------------------------Q2----------------------------------------------------------------
+    private TextView txtModeloDispositivo;
+    private TextView txtVersaoAndroid;
+    //----------------------------------------------------------------------------------------------------
+    // Q5: NOVOS CAMPOS DE RODAPÉ E ENCERRAMENTO
+    private TextView txtRodape;
+    private TextView txtDataEncerramento;
 
     private Button btnVotarA;
     private Button btnVotarB;
@@ -71,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseAuth auth;
     private EnqueteRepository enqueteRepository;
     private ListenerRegistration resultadosListener;
+    private Enquete enqueteAtual; // Armazena o último estado da enquete para checagem de tempo
+    private String votoDoUsuario = null; // Armazena o voto do usuário localmente
 
     // =====================================================================
     //  Ciclo de vida
@@ -99,6 +117,7 @@ public class MainActivity extends AppCompatActivity {
         enqueteRepository.carregarEnquete(new EnqueteRepository.EnqueteCarregadaCallback() {
             @Override
             public void onEnqueteCarregada(Enquete enquete) {
+                enqueteAtual = enquete; // Garante que a enqueteAtual não seja nula
                 atualizarUIComEnquete(enquete);
             }
 
@@ -208,6 +227,15 @@ public class MainActivity extends AppCompatActivity {
         txtTotalGeral = findViewById(R.id.txtTotalGeral);
         txtSeuVoto = findViewById(R.id.txtSeuVoto);
 
+//-------------------INICIALIZAÇÃO DOS NOVOS TEXTVIEWS ---Q2-------------------------------------
+        txtModeloDispositivo = findViewById(R.id.txtModeloDispositivo);
+        txtVersaoAndroid = findViewById(R.id.txtVersaoAndroid);
+//---------------------------------------------------------------------------------------------
+        // Q5: Inicialização dos novos TextViews de Rodapé e Encerramento.
+        // O ID é txtDataEncerramento, não txtEncerramento, para evitar NullPointerException.
+        txtRodape = findViewById(R.id.txtRodape);
+        txtDataEncerramento = findViewById(R.id.txtEncerramento);
+
         btnVotarA = findViewById(R.id.btnVotarA);
         btnVotarB = findViewById(R.id.btnVotarB);
         btnVotarC = findViewById(R.id.btnVotarC);
@@ -269,6 +297,7 @@ public class MainActivity extends AppCompatActivity {
         resultadosListener = enqueteRepository.observarEnquete(new EnqueteRepository.EnqueteListener() {
             @Override
             public void onEnqueteAtualizada(Enquete enquete) {
+                enqueteAtual = enquete; // Armazena a enquete atual para checagem de tempo
                 atualizarUIComEnquete(enquete);
             }
 
@@ -290,11 +319,12 @@ public class MainActivity extends AppCompatActivity {
      * - Pergunta
      * - Texto dos botões de voto
      * - Contadores de votos e porcentagens
+     * - Rodapé e status de encerramento
      */
     private void atualizarUIComEnquete(Enquete enquete) {
         if (enquete == null) return;
 
-        // Textos dinâmicos
+        // 1. Textos dinâmicos
         if (enquete.getTituloEnquete() != null) {
             txtPergunta.setText(enquete.getTituloEnquete());
         }
@@ -308,6 +338,7 @@ public class MainActivity extends AppCompatActivity {
             btnVotarC.setText(enquete.getTextoOpcaoC());
         }
 
+        // 2. Contadores e Totais
         long votosA = enquete.getOpcaoA();
         long votosB = enquete.getOpcaoB();
         long votosC = enquete.getOpcaoC();
@@ -321,22 +352,110 @@ public class MainActivity extends AppCompatActivity {
         txtTotalB.setText("Opção B: " + votosB + " votos (" + percB + "%)");
         txtTotalC.setText("Opção C: " + votosC + " votos (" + percC + "%)");
         txtTotalGeral.setText("Total de votos: " + total);
+
+        // 3. Q5: ATUALIZAÇÃO DO RODAPÉ E ENCERRAMENTO
+
+        // Mensagem de Rodapé
+        String rodape = enquete.getMensagemRodape();
+        if (rodape != null && !rodape.trim().isEmpty()) {
+            txtRodape.setText(rodape);
+            txtRodape.setVisibility(View.VISIBLE);
+        } else {
+            txtRodape.setVisibility(View.GONE);
+        }
+
+        // Data/Hora de Encerramento e Verificação
+        String encerramentoStr = enquete.getDataHoraEncerramento();
+        boolean votacaoEncerrada = false;
+
+        if (encerramentoStr != null && !encerramentoStr.trim().isEmpty()) {
+            txtDataEncerramento.setText(String.format("Encerramento: %s", encerramentoStr));
+            txtDataEncerramento.setVisibility(View.VISIBLE);
+
+            try {
+                Date dataEncerramento = DATE_FORMAT.parse(encerramentoStr);
+                Date dataAtual = new Date();
+
+                if (dataEncerramento != null && dataAtual.after(dataEncerramento)) {
+                    votacaoEncerrada = true;
+                }
+            } catch (ParseException e) {
+                Log.e(TAG, "Erro ao parsear data de encerramento.", e);
+                txtDataEncerramento.setText(String.format("Encerramento: Formato Inválido (%s)", encerramentoStr));
+            }
+        } else {
+            txtDataEncerramento.setVisibility(View.GONE);
+        }
+
+        // 4. Aplicar o estado de Votação (Encerrada ou Voto Próprio)
+        if (votacaoEncerrada) {
+            setBotoesVotoEnabled(false);
+            if (votoDoUsuario == null) {
+                txtSeuVoto.setText("Votação encerrada.");
+            } else {
+                txtSeuVoto.setText("Votação encerrada (Seu voto: opção " + votoDoUsuario + ")");
+            }
+        } else if (votoDoUsuario != null) {
+            setBotoesVotoEnabled(false);
+            txtSeuVoto.setText("Seu voto: opção " + votoDoUsuario);
+        } else {
+            setBotoesVotoEnabled(true);
+            txtSeuVoto.setText("Seu voto: ainda não votou");
+        }
+    }
+
+    /**
+     * Habilita ou desabilita os botões de votação (A, B, C).
+     * @param enabled TRUE para habilitar, FALSE para desabilitar.
+     */
+    private void setBotoesVotoEnabled(boolean enabled) {
+        btnVotarA.setEnabled(enabled);
+        btnVotarB.setEnabled(enabled);
+        btnVotarC.setEnabled(enabled);
     }
 
     /**
      * Carrega do Firestore qual opção o usuário já votou (se houver)
      * e atualiza o texto "Seu voto".
      */
+    //-----------------------------Q2 Alterado----------------------------------------------------------------------------------
     private void carregarVotoUsuario() {
-        enqueteRepository.carregarVotoUsuario(opcao -> {
-            if (opcao != null) {
-                txtSeuVoto.setText("Seu voto: opção " + opcao);
-            } else {
-                txtSeuVoto.setText("Seu voto: ainda não votou");
+        enqueteRepository.carregarVotoUsuario(new EnqueteRepository.VotoUsuarioCallback() {
+            @Override
+            public void onVotoCarregado(String opcao, String modelo, String versaoAndroid) {
+                votoDoUsuario = opcao; // Armazena localmente o voto do usuário
+
+                // Variável para exibir o traço (—) quando não houver voto ou metadado
+                final String traco = "—";
+
+                if (opcao != null) {
+                    txtSeuVoto.setText("Seu voto: opção " + opcao);
+
+                    // Exibe metadados do dispositivo se o voto foi encontrado
+                    txtModeloDispositivo.setText("Modelo: " + (modelo != null ? modelo : traco));
+                    txtVersaoAndroid.setText("Android: " + (versaoAndroid != null ? versaoAndroid : traco));
+
+                    // Desabilita os botões se já votou (a menos que a votação esteja encerrada, o que será tratado em atualizarUIComEnquete)
+                    setBotoesVotoEnabled(false);
+                } else {
+                    txtSeuVoto.setText("Seu voto: ainda não votou");
+
+                    // Exibe metadados do dispositivo atual quando não há voto
+                    txtModeloDispositivo.setText("Modelo: " + android.os.Build.MODEL);
+                    txtVersaoAndroid.setText("Android: " + android.os.Build.VERSION.RELEASE);
+
+                    // Habilita os botões se ainda não votou
+                    setBotoesVotoEnabled(true);
+                }
+
+                // Garante que o estado final dos botões considere o encerramento da votação
+                if (enqueteAtual != null) {
+                    atualizarUIComEnquete(enqueteAtual);
+                }
             }
         });
     }
-
+//-------------------------------------------------------------------------------------------------------------------
     // =====================================================================
     //  Ações da interface (votar e resetar enquete)
     // =====================================================================
@@ -352,13 +471,41 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Envia a opção selecionada para o EnqueteRepository registrar o voto.
+     * Envia a opção selecionada para o EnqueteRepository registrar o voto,
+     * APÓS verificar se a votação foi encerrada.
      */
     private void registrarVoto(String opcao) {
+        if (enqueteAtual == null) {
+            Toast.makeText(this, "Aguarde o carregamento da enquete.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Q5: VERIFICAÇÃO DE ENCERRAMENTO DA VOTAÇÃO
+        String encerramentoStr = enqueteAtual.getDataHoraEncerramento();
+
+        if (encerramentoStr != null && !encerramentoStr.trim().isEmpty()) {
+            try {
+                Date dataEncerramento = DATE_FORMAT.parse(encerramentoStr);
+                Date dataAtual = new Date();
+
+                if (dataEncerramento != null && dataAtual.after(dataEncerramento)) {
+                    Toast.makeText(this, "Votação encerrada pelo professor.", Toast.LENGTH_LONG).show();
+                    txtSeuVoto.setText("Votação encerrada.");
+                    setBotoesVotoEnabled(false);
+                    return; // Sai do método sem registrar o voto
+                }
+            } catch (ParseException e) {
+                Log.e(TAG, "Erro ao parsear data de encerramento. Votando mesmo assim.", e);
+            }
+        }
+        // FIM Q5: VERIFICAÇÃO DE ENCERRAMENTO
+
         enqueteRepository.registrarVoto(opcao, new EnqueteRepository.RegistrarVotoCallback() {
             @Override
             public void onVotoRegistrado(String opcaoRegistrada) {
+                votoDoUsuario = opcaoRegistrada; // Atualiza o voto local
                 txtSeuVoto.setText("Seu voto: opção " + opcaoRegistrada);
+                setBotoesVotoEnabled(false); // Desabilita após votar
                 Toast.makeText(
                         MainActivity.this,
                         "Voto registrado.",
@@ -368,7 +515,9 @@ public class MainActivity extends AppCompatActivity {
 
             @Override
             public void onJaVotou(String opcaoExistente) {
+                votoDoUsuario = opcaoExistente; // Atualiza o voto local
                 txtSeuVoto.setText("Seu voto: opção " + opcaoExistente);
+                setBotoesVotoEnabled(false); // Desabilita se já votou
                 Toast.makeText(
                         MainActivity.this,
                         "Você já votou.",
@@ -419,6 +568,7 @@ public class MainActivity extends AppCompatActivity {
         enqueteRepository.resetarEnquete(new EnqueteRepository.OperacaoCallback() {
             @Override
             public void onSucesso() {
+                votoDoUsuario = null; // Limpa o voto local após o reset
                 txtSeuVoto.setText("Seu voto: ainda não votou");
                 Toast.makeText(
                         MainActivity.this,

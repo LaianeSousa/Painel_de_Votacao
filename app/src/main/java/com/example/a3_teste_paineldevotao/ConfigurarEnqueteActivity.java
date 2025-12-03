@@ -15,6 +15,11 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.a3_teste_paineldevotao.data.EnqueteRepository;
 import com.google.android.material.appbar.MaterialToolbar;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
  * Tela de configuração da enquete.
  * <p>
@@ -36,6 +41,10 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
     private EditText edtOpcaoA;
     private EditText edtOpcaoB;
     private EditText edtOpcaoC;
+//-------------------------------------------Q5-----------------------------------------------
+    private EditText edtMensagemRodape;
+    private EditText edtDataHoraEncerramento; // Ex: 2025-12-31 23:59
+    //---------------------------------------------------------------------------------------
     private Button btnSalvarConfig;
 
     // Repositório centraliza toda a lógica de Firestore
@@ -44,7 +53,10 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
     // =====================================================================
     //  Ciclo de vida
     // =====================================================================
-
+    //----------------------------------Q5-----------------------------------------------------------
+    private static final SimpleDateFormat DATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+    //---------------------------------------------------------------------------------------------
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -124,6 +136,10 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
         edtOpcaoA = findViewById(R.id.edtOpcaoA);
         edtOpcaoB = findViewById(R.id.edtOpcaoB);
         edtOpcaoC = findViewById(R.id.edtOpcaoC);
+//-------------------------------------Q5-------------------------------------------------------------
+        edtMensagemRodape = findViewById(R.id.txtRodape);
+        edtDataHoraEncerramento = findViewById(R.id.txtEncerramento);
+        //------------------------------------------------------------------------------------------
         btnSalvarConfig = findViewById(R.id.btnSalvarConfig);
     }
 
@@ -141,7 +157,9 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
             public void onConfiguracaoCarregada(String titulo,
                                                 String opcaoA,
                                                 String opcaoB,
-                                                String opcaoC) {
+                                                String opcaoC,
+                                                String mensagemRodape,
+                                                String dataHoraEncerramento) {
 
                 if (titulo != null) {
                     edtTituloEnquete.setText(titulo);
@@ -155,6 +173,14 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
                 if (opcaoC != null) {
                     edtOpcaoC.setText(opcaoC);
                 }
+                //-------------------------------------Q5----------------------------------------------------------
+                if (mensagemRodape != null) {
+                    edtMensagemRodape.setText(mensagemRodape);
+                }
+                if (dataHoraEncerramento != null) {
+                    edtDataHoraEncerramento.setText(dataHoraEncerramento);
+                }
+/// /----------------------------------------------------------------------------------------------------------------
             }
 
             @Override
@@ -186,6 +212,11 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
             String opcaoB = edtOpcaoB.getText().toString().trim();
             String opcaoC = edtOpcaoC.getText().toString().trim();
 
+            //---------------------------------Q5-----------------------------------------------------
+            String mensagemRodape = edtMensagemRodape.getText().toString().trim();
+            String dataHoraEncerramento = edtDataHoraEncerramento.getText().toString().trim();
+            //---------------------------------------------------------------------------------------
+
             // Validações simples para evitar salvar dados incompletos
             if (titulo.isEmpty()) {
                 Toast.makeText(
@@ -204,13 +235,32 @@ public class ConfigurarEnqueteActivity extends AppCompatActivity {
                 ).show();
                 return;
             }
+            //----------------------------Q5-----------------------------------------------------------------------------------------
+            if (!dataHoraEncerramento.isEmpty()) {
+                try {
+                    Date dataEncerramento = DATE_FORMAT.parse(dataHoraEncerramento);
+                    Date dataAtual = new Date();
 
+                    if (dataEncerramento != null && dataEncerramento.before(dataAtual)) {
+                        Toast.makeText(this, "A data/hora de encerramento não pode ser no passado.", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                } catch (ParseException e) {
+                    Toast.makeText(this, "Formato de data/hora inválido. Use AAAA-MM-DD HH:MM", Toast.LENGTH_LONG).show();
+                    return;
+                }
+            }
+//---------------------------------------------------------------------------------------------------------------------------------------------
             // Chama o repositório para salvar no Firestore
             enqueteRepository.salvarConfiguracoes(
                     titulo,
                     opcaoA,
                     opcaoB,
                     opcaoC,
+                    //--------------------------------------------------------------------------------------------------
+                    mensagemRodape,
+                    dataHoraEncerramento,
+                    //--------------------------------------------------------------------------------------------------
                     new EnqueteRepository.OperacaoCallback() {
                         @Override
                         public void onSucesso() {

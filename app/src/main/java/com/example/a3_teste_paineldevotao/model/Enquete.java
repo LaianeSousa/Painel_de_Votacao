@@ -26,7 +26,10 @@ public class Enquete {
     private String textoOpcaoA;
     private String textoOpcaoB;
     private String textoOpcaoC;
-
+//----------------------------------------Q5--------------------------------------------------------------
+    private String mensagemRodape;
+    private String dataHoraEncerramento;
+    //----------------------------------------------------------------------------------------------
     // =====================================================================
     //  Contadores de votos
     // =====================================================================
@@ -79,6 +82,24 @@ public class Enquete {
     public void setTituloEnquete(String tituloEnquete) {
         this.tituloEnquete = tituloEnquete;
     }
+
+    // NOVOS GETTERS E SETTERS-----------------------------Q5-----------------------------------------
+    public String getMensagemRodape() {
+        return mensagemRodape;
+    }
+
+    public void setMensagemRodape(String mensagemRodape) {
+        this.mensagemRodape = mensagemRodape;
+    }
+
+    public String getDataHoraEncerramento() {
+        return dataHoraEncerramento;
+    }
+
+    public void setDataHoraEncerramento(String dataHoraEncerramento) {
+        this.dataHoraEncerramento = dataHoraEncerramento;
+    }
+    //---------------------------------------------------------------------------------------------------
 
     public String getTextoOpcaoA() {
         return textoOpcaoA;
@@ -148,7 +169,10 @@ public class Enquete {
         dados.put("textoOpcaoA", textoOpcaoA);
         dados.put("textoOpcaoB", textoOpcaoB);
         dados.put("textoOpcaoC", textoOpcaoC);
-
+//-------------------------------------------Q5-------------------------------------------------------
+        dados.put("mensagemRodape", mensagemRodape);
+        dados.put("dataHoraEncerramento", dataHoraEncerramento);
+//--------------------------------------------------------------------------------------------------
         dados.put("opcaoA", opcaoA);
         dados.put("opcaoB", opcaoB);
         dados.put("opcaoC", opcaoC);
