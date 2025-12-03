@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "401595506404",
+    "project_id": "painel-de-votacao-b2d31",
+    "storage_bucket": "painel-de-votacao-b2d31.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:401595506404:android:358551718996ecb81456f1",
+        "android_client_info": {
+          "package_name": "com.example.a3_teste_paineldevotao"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC2uEGMSu6sa1-H0scWl2aI0hRNuBSrXOw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

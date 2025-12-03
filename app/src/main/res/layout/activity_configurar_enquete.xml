@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layoutConfigRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E3F2FD"
+    android:padding="16dp"
+    tools:context=".ConfigurarEnqueteActivity">
+
+    <!-- Toolbar -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbarConfig"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#1565C0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:titleTextColor="@android:color/white" />
+
+    <!-- Texto explicativo -->
+    <TextView
+        android:id="@+id/txtDescricao"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Edite a pergunta e as opções exibidas no painel de votação."
+        android:textColor="#1A237E"
+        android:textSize="15sp"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        app:layout_constraintTop_toBottomOf="@id/toolbarConfig"
+        app:layout_constraintBottom_toTopOf="@id/layoutCardConfig"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <!-- Card com os campos -->
+    <LinearLayout
+        android:id="@+id/layoutCardConfig"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_card"
+        android:elevation="4dp"
+        android:orientation="vertical"
+        android:padding="20dp"
+        app:layout_constraintTop_toBottomOf="@id/txtDescricao"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Pergunta da enquete:"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:textColor="#212121" />
+
+        <EditText
+            android:id="@+id/edtTituloEnquete"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ex: Qual sua linguagem favorita?"
+            android:layout_marginTop="8dp"
+            android:inputType="textCapSentences"
+            android:textColor="#0D47A1"
+            android:textColorHint="#5472B2" />
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="#DDDDDD"
+            android:layout_marginTop="16dp"
+            android:layout_marginBottom="16dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Texto da opção A:"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#212121" />
+
+        <EditText
+            android:id="@+id/edtOpcaoA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ex: Java"
+            android:layout_marginTop="4dp"
+            android:textColor="#0D47A1"
+            android:textColorHint="#5472B2" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Texto da opção B:"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#212121"
+            android:layout_marginTop="12dp" />
+
+        <EditText
+            android:id="@+id/edtOpcaoB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ex: C++"
+            android:layout_marginTop="4dp"
+            android:textColor="#0D47A1"
+            android:textColorHint="#5472B2" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Texto da opção C:"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="#212121"
+            android:layout_marginTop="12dp" />
+
+        <EditText
+            android:id="@+id/edtOpcaoC"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:hint="Ex: Python"
+            android:layout_marginTop="4dp"
+            android:textColor="#0D47A1"
+            android:textColorHint="#5472B2" />
+
+        <Button
+            android:id="@+id/btnSalvarConfig"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Salvar configurações"
+            android:textAllCaps="false"
+            android:textStyle="bold"
+            android:textColor="#FFFFFF"
+            android:background="@drawable/bg_option_button"
+            android:layout_marginTop="20dp"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

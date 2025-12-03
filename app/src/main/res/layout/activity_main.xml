@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/layoutMain"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#E3F2FD"
+    android:padding="16dp"
+    tools:context=".MainActivity">
+
+    <!-- Toolbar com fundo azul escuro, título controlado pelo getSupportActionBar() -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/toolbar"
+        android:layout_width="0dp"
+        android:layout_height="?attr/actionBarSize"
+        android:background="#1565C0"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:titleTextColor="@android:color/white" />
+
+    <TextView
+        android:id="@+id/txtSubtitulo"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="16dp"
+        android:layout_marginBottom="16dp"
+        android:gravity="center"
+        android:text="Escolha uma das opções abaixo e acompanhe o resultado em tempo real."
+        android:textColor="#1A237E"
+        android:textSize="15sp"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/toolbar"
+        app:layout_constraintBottom_toTopOf="@id/layoutCard"
+        app:layout_constraintVertical_chainStyle="packed" />
+
+    <!-- Card central com conteúdo da votação -->
+    <LinearLayout
+        android:id="@+id/layoutCard"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="24dp"
+        android:layout_marginBottom="24dp"
+        android:background="@drawable/bg_card"
+        android:elevation="4dp"
+        android:orientation="vertical"
+        android:padding="20dp"
+        app:layout_constraintTop_toBottomOf="@id/txtSubtitulo"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent">
+
+        <!-- Pergunta / título da enquete -->
+        <TextView
+            android:id="@+id/txtPergunta"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Em qual opção você deseja votar?"
+            android:textColor="#212121"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Botão Opção A -->
+        <Button
+            android:id="@+id/btnVotarA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_option_button"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="Opção A"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Botão Opção B -->
+        <Button
+            android:id="@+id/btnVotarB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:background="@drawable/bg_option_button"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="Opção B"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Botão Opção C -->
+        <Button
+            android:id="@+id/btnVotarC"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/bg_option_button"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="Opção C"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Linha divisória -->
+        <View
+            android:id="@+id/divisor"
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="12dp"
+            android:background="#DDDDDD" />
+
+        <!-- Título dos resultados -->
+        <TextView
+            android:id="@+id/txtTituloResultados"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Resultados (tempo real)"
+            android:textColor="#212121"
+            android:textSize="16sp"
+            android:textStyle="bold" />
+
+        <!-- Resultado Opção A -->
+        <TextView
+            android:id="@+id/txtTotalA"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Opção A: 0 votos"
+            android:textColor="#424242"
+            android:textSize="15sp" />
+
+        <!-- Resultado Opção B -->
+        <TextView
+            android:id="@+id/txtTotalB"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Opção B: 0 votos"
+            android:textColor="#424242"
+            android:textSize="15sp" />
+
+        <!-- Resultado Opção C -->
+        <TextView
+            android:id="@+id/txtTotalC"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Opção C: 0 votos"
+            android:textColor="#424242"
+            android:textSize="15sp" />
+
+        <!-- Total geral -->
+        <TextView
+            android:id="@+id/txtTotalGeral"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="8dp"
+            android:text="Total de votos: 0"
+            android:textColor="#424242"
+            android:textSize="15sp" />
+
+        <!-- Informação sobre o voto do usuário -->
+        <TextView
+            android:id="@+id/txtSeuVoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Seu voto: ainda não votou"
+            android:textColor="#616161"
+            android:textSize="14sp" />
+
+        <!-- Botão para o professor zerar votos -->
+        <Button
+            android:id="@+id/btnReset"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_option_button"
+            android:paddingTop="8dp"
+            android:paddingBottom="8dp"
+            android:text="Zerar votos (professor)"
+            android:textAllCaps="false"
+            android:textColor="#FFFFFF"
+            android:textSize="14sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
