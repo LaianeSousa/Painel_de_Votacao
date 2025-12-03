@@ -8,9 +8,11 @@ import com.example.a3_teste_paineldevotao.model.Enquete;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -294,27 +296,36 @@ public class EnqueteRepository {
      * Reseta a enquete:
      * - Zera os contadores das três opções.
      * - Remove todos os documentos da subcoleção "votos" (votos por usuário).
-     *
+     * <p>
      * Útil na tela de administração para começar uma votação “do zero”.
      *
+     * @param motivo
      * @param callback callback de sucesso ou erro
      */
-    public void resetarEnquete(OperacaoCallback callback) {
+
+    public void resetarEnquete(String motivo, OperacaoCallback callback) {
         Map<String, Object> dados = new HashMap<>();
         dados.put("opcaoA", 0L);
         dados.put("opcaoB", 0L);
         dados.put("opcaoC", 0L);
 
-        // Primeiro zera os contadores
+        // 1. Zera os contadores
         enqueteRef.set(dados, SetOptions.merge())
                 .addOnSuccessListener(unused -> {
 
-                    // Depois remove todos os documentos da subcoleção "votos"
+                    // 2. Remove todos os documentos da subcoleção "votos"
                     enqueteRef.collection("votos")
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
-                                querySnapshot.getDocuments()
-                                        .forEach(doc -> doc.getReference().delete());
+                                for (QueryDocumentSnapshot doc : querySnapshot) {
+                                    doc.getReference().delete();
+                                }
+
+                                // 3. REGISTRA O LOG DO RESET
+
+                                registrarLogReset(motivo);
+
+                                // Finaliza com sucesso
                                 callback.onSucesso();
                             })
                             .addOnFailureListener(callback::onErro);
@@ -323,10 +334,62 @@ public class EnqueteRepository {
                 .addOnFailureListener(callback::onErro);
     }
 
+    private void registrarLogReset(String observacao) {
+        Map<String, Object> log = new HashMap<>();
+        log.put("tipo", "reset_votacao");
+        log.put("observacao", observacao);
+        log.put("timestamp", FieldValue.serverTimestamp()); // Hora do servidor
+
+        // Adiciona na subcoleção "logs" (cria documento com ID automático)
+        enqueteRef.collection("logs").add(log);
+    }
+
+    // Em EnqueteRepository.java
+
+// ... (cole este método em uma seção apropriada, como "Histórico de Logs") ...
+
+// =====================================================================
+//  Histórico de Logs
+// =====================================================================
+
+    /**
+     * Carrega a lista de logs (reset de votação) do Firestore.
+     * Os logs são ordenados pela data, do mais recente para o mais antigo.
+     *
+     * @param callback Callback para retornar a lista de logs ou um erro.
+     */
+    public void carregarHistoricoLogs(HistoricoLogsCallback callback) {
+        enqueteRef.collection("logs") // Acessa a subcoleção "logs"
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING) // Ordena pelo mais recente
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    // Converte os documentos do Firestore em uma lista de mapas
+                    List<Map<String, Object>> listaDeLogs = new java.util.ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        listaDeLogs.add(document.getData());
+                    }
+                    // Envia a lista para a Activity através do callback
+                    callback.onHistoricoCarregado(listaDeLogs);
+                })
+                .addOnFailureListener(e -> {
+                    // Em caso de erro, notifica a Activity
+                    callback.onErro(e);
+                });
+    }
+
+
     // =====================================================================
     //  Interfaces de callback
     // =====================================================================
+    /**
+     * Callback para receber a lista de logs (histórico).
+     */
+    public interface HistoricoLogsCallback {
+        // Retorna uma lista de Mapas. Numa aplicação real, derailment seria List<LogModel>
+        void onHistoricoCarregado(List<Map<String, Object>> logs);
 
+        void onErro(@Nullable Exception e);
+    }
     /**
      * Listener para receber atualizações em tempo real da enquete.
      */
