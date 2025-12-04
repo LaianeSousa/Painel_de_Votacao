@@ -465,29 +465,55 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Registra voto com validação de encerramento (Q5).
      */
+    /**
+     * Registra o voto do usuário em uma das opções (A, B ou C),
+     * primeiro validando se a votação não foi encerrada por tempo.
+     *
+     * @param opcao A opção de voto ("A", "B" ou "C").
+     */
     private void registrarVoto(String opcao) {
         if (enqueteAtual == null) {
-            Toast.makeText(this, "Aguarde o carregamento...", Toast.LENGTH_SHORT).show();
+            Toast.makeText(this, "Aguarde o carregamento da enquete...", Toast.LENGTH_SHORT).show();
             return;
         }
 
-        // Q5: Verifica se está encerrada antes de enviar
+        // --- INÍCIO DA VALIDAÇÃO DE ENCERRAMENTO (Q5) ---
+
+        /*
+         * Critério de Encerramento: A votação é considerada encerrada se a data/hora atual
+         * do dispositivo for POSTERIOR (after) à data/hora de encerramento definida
+         * no Firestore.
+         *
+         * Limitação: Esta verificação depende exclusivamente do relógio do dispositivo do usuário.
+         * Um usuário mal-intencionado poderia alterar a hora de seu celular para o passado
+         * e burlar essa verificação, conseguindo votar após o prazo.
+         *
+         * Solução Ideal: Em um sistema real, a verificação de tempo deveria ser feita
+         * no lado do servidor (usando Cloud Functions, por exemplo) para garantir que o horário
+         * de referência é único e seguro, independentemente do cliente.
+         */
         String encerramentoStr = enqueteAtual.getDataHoraEncerramento();
         if (encerramentoStr != null && !encerramentoStr.trim().isEmpty()) {
             try {
                 Date dataEncerramento = DATE_FORMAT.parse(encerramentoStr);
-                Date dataAtual = new Date();
+                Date dataAtual = new Date(); // Horário atual do dispositivo
+
+                // Se a data atual vem DEPOIS da data de encerramento, a votação está encerrada.
                 if (dataEncerramento != null && dataAtual.after(dataEncerramento)) {
                     Toast.makeText(this, "Votação encerrada pelo professor.", Toast.LENGTH_LONG).show();
                     txtSeuVoto.setText("Votação encerrada.");
-                    setBotoesVotoEnabled(false);
-                    return;
+                    setBotoesVotoEnabled(false); // Garante que os botões fiquem desabilitados
+                    return; // Interrompe a execução do método, impedindo o voto.
                 }
             } catch (ParseException e) {
-                Log.e(TAG, "Erro data encerramento, prosseguindo com voto.", e);
+                // Se a data estiver em formato inválido, apenas logamos o erro e permitimos o voto.
+                // Poderíamos também optar por bloquear o voto, mas seguir com ele é mais robusto.
+                Log.e(TAG, "Formato de data de encerramento inválido, voto permitido.", e);
             }
         }
+        // --- FIM DA VALIDAÇÃO DE ENCERRAMENTO ---
 
+        // Se passou pela validação, prossegue com o registro do voto.
         enqueteRepository.registrarVoto(opcao, new EnqueteRepository.RegistrarVotoCallback() {
             @Override
             public void onVotoRegistrado(String opcaoRegistrada) {

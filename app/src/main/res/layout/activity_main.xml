@@ -222,9 +222,6 @@
             android:visibility="gone"
             tools:visibility="visible"/>
 
-
-
-        //////QUESTÃO01//////
         <!-- NOVO: Data e Hora do Voto (Requisito 1) -->
         <TextView
             android:id="@+id/txtDataVoto"
