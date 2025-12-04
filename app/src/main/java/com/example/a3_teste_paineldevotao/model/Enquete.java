@@ -26,6 +26,11 @@ public class Enquete {
     private String textoOpcaoA;
     private String textoOpcaoB;
     private String textoOpcaoC;
+    //----------------------------------------Q5--------------------------------------------------------------
+    private String mensagemRodape;
+    private String dataHoraEncerramento;
+    //----------------------------------------------------------------------------------------------
+
 
     // =====================================================================
     //  Contadores de votos
@@ -64,6 +69,8 @@ public class Enquete {
         this.opcaoA = opcaoA;
         this.opcaoB = opcaoB;
         this.opcaoC = opcaoC;
+        this.mensagemRodape = mensagemRodape;
+        this.dataHoraEncerramento = dataHoraEncerramento;
     }
 
     // =====================================================================
@@ -71,6 +78,24 @@ public class Enquete {
     // =====================================================================
 
     // Mantidos simples para que o Repository manipule os valores quando carregar ou salvar.
+    // NOVOS GETTERS E SETTERS-----------------------------Q5-----------------------------------------
+    public String getMensagemRodape() {
+        return mensagemRodape;
+    }
+
+    public void setMensagemRodape(String mensagemRodape) {
+        this.mensagemRodape = mensagemRodape;
+    }
+
+    public String getDataHoraEncerramento() {
+        return dataHoraEncerramento;
+    }
+
+    public void setDataHoraEncerramento(String dataHoraEncerramento) {
+        this.dataHoraEncerramento = dataHoraEncerramento;
+    }
+    //---------------------------------------------------------------------------------------------------
+
 
     public String getTituloEnquete() {
         return tituloEnquete;
@@ -148,6 +173,11 @@ public class Enquete {
         dados.put("textoOpcaoA", textoOpcaoA);
         dados.put("textoOpcaoB", textoOpcaoB);
         dados.put("textoOpcaoC", textoOpcaoC);
+        //-------------------------------------------Q5-------------------------------------------------------
+        dados.put("mensagemRodape", mensagemRodape);
+        dados.put("dataHoraEncerramento", dataHoraEncerramento);
+        //--------------------------------------------------------------------------------------------------
+
 
         dados.put("opcaoA", opcaoA);
         dados.put("opcaoB", opcaoB);

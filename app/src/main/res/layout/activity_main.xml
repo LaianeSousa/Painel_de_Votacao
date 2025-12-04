@@ -176,6 +176,53 @@
             android:text="Seu voto: ainda não votou"
             android:textColor="#616161"
             android:textSize="14sp" />
+        <!-- Modelo do Dispositivo -->
+        <TextView
+            android:id="@+id/txtModeloDispositivo"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Modelo: —"
+            android:textColor="#616161"
+            android:textSize="14sp" />
+
+        <!-- Versão do Android -->
+        <TextView
+            android:id="@+id/txtVersaoAndroid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Android: —"
+            android:textColor="#616161"
+            android:textSize="14sp" />
+
+        <!-- Data/Hora de Encerramento -->
+        <TextView
+            android:id="@+id/txtEncerramento"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Encerramento: Não definido"
+            android:textColor="#B71C1C"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+        <!-- Mensagem de Rodapé -->
+        <TextView
+            android:id="@+id/txtRodape"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            android:text="Mensagem Rodapé: Ativo."
+            android:textColor="#388E3C"
+            android:textSize="14sp"
+            android:textStyle="italic"
+            android:visibility="gone"
+            tools:visibility="visible"/>
+
+
 
         //////QUESTÃO01//////
         <!-- NOVO: Data e Hora do Voto (Requisito 1) -->

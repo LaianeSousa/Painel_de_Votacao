@@ -1,7 +1,7 @@
 package com.example.a3_teste_paineldevotao.data;
 
 import android.content.Context;
-
+import android.os.Build;
 import androidx.annotation.Nullable;
 
 import com.example.a3_teste_paineldevotao.model.Enquete;
@@ -9,9 +9,11 @@ import com.google.firebase.Timestamp;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.ListenerRegistration;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.SetOptions;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -79,6 +81,11 @@ public class EnqueteRepository {
                         "Opção C",
                         0, 0, 0
                 );
+                // --- Campos de Rodapé e Encerramento Padrão ----Q5--------------------------------------
+                enquetePadrao.setMensagemRodape("Painel de votação ativo. Vote uma única vez.");
+                enquetePadrao.setDataHoraEncerramento(""); // Sem encerramento por padrão
+                // ------------------------------------------------------------------------------------------------
+
                 // Salvamos o mapa da enquete no Firestore
                 enqueteRef.set(enquetePadrao.toMap());
             }
@@ -114,6 +121,11 @@ public class EnqueteRepository {
             enquete.setTextoOpcaoA(snapshot.getString("textoOpcaoA"));
             enquete.setTextoOpcaoB(snapshot.getString("textoOpcaoB"));
             enquete.setTextoOpcaoC(snapshot.getString("textoOpcaoC"));
+            // --- Extrai campos de Rodapé e Encerramento ----------Q5-------------------------------------
+            enquete.setMensagemRodape(snapshot.getString("mensagemRodape"));
+            enquete.setDataHoraEncerramento(snapshot.getString("dataHoraEncerramento"));
+            // -----------------------------------------------------------------------------------------
+
 
             // Contadores podem ser nulos, então tratamos para evitar NullPointerException
             Long a = snapshot.getLong("opcaoA");
@@ -157,6 +169,12 @@ public class EnqueteRepository {
                     enquete.setTextoOpcaoB(snapshot.getString("textoOpcaoB"));
                     enquete.setTextoOpcaoC(snapshot.getString("textoOpcaoC"));
 
+                    // --- Extrai campos de Rodapé e Encerramento ------Q5---------------------------
+                    enquete.setMensagemRodape(snapshot.getString("mensagemRodape"));
+                    enquete.setDataHoraEncerramento(snapshot.getString("dataHoraEncerramento"));
+                    // -----------------------------------------------------------------------------------
+
+
                     Long a = snapshot.getLong("opcaoA");
                     Long b = snapshot.getLong("opcaoB");
                     Long c = snapshot.getLong("opcaoC");
@@ -188,6 +206,11 @@ public class EnqueteRepository {
                                     String opcaoA,
                                     String opcaoB,
                                     String opcaoC,
+                                    //-------------Q5--------------------
+                                    String mensagemRodape,
+                                    String dataHoraEncerramento,
+                                    //----------------------------------
+
                                     OperacaoCallback callback) {
 
         Map<String, Object> dados = new HashMap<>();
@@ -195,6 +218,11 @@ public class EnqueteRepository {
         dados.put("textoOpcaoA", opcaoA);
         dados.put("textoOpcaoB", opcaoB);
         dados.put("textoOpcaoC", opcaoC);
+        // --- Adiciona campos de Rodapé e Encerramento ------Q5---------------------------------
+        dados.put("mensagemRodape", mensagemRodape);
+        dados.put("dataHoraEncerramento", dataHoraEncerramento);
+        // ----------------------------------------------------------------------------------------
+
 
         // merge() apenas atualiza estes campos, mantendo os demais (contadores, etc.)
         enqueteRef.set(dados, SetOptions.merge())
@@ -220,8 +248,14 @@ public class EnqueteRepository {
                     String opcaoA = snapshot.getString("textoOpcaoA");
                     String opcaoB = snapshot.getString("textoOpcaoB");
                     String opcaoC = snapshot.getString("textoOpcaoC");
+                    // --- Extrai campos de Rodapé e Encerramento ---Q5--------------------------
+                    String rodape = snapshot.getString("mensagemRodape");
+                    String encerramento = snapshot.getString("dataHoraEncerramento");
+                    // --------------------------------------------------------------------------
 
-                    callback.onConfiguracaoCarregada(titulo, opcaoA, opcaoB, opcaoC);
+
+                    callback.onConfiguracaoCarregada(titulo, opcaoA, opcaoB, opcaoC, rodape, encerramento);
+
                 })
                 .addOnFailureListener(callback::onErro);
     }
@@ -241,20 +275,31 @@ public class EnqueteRepository {
 
         // Se não há usuário logado, não há como buscar voto
         if (votoRef == null) {
-            callback.onVotoCarregado(null);
+            //-------------------------------------Q2 deixando os valores como null --------------------------------------------
+            callback.onVotoCarregado(null, null, null);
             return;
+            //----------------------------------------------------------------------------------------------------------------
         }
 
         votoRef.get()
                 .addOnSuccessListener(snapshot -> {
                     if (snapshot != null && snapshot.exists()) {
                         String opcao = snapshot.getString("opcaoEscolhida");
-                        callback.onVotoCarregado(opcao);
+                        //------------------------------------------Q2 ---------------------------------------------------------------------------
+                        String modelo = snapshot.getString("modelo");
+                        String versaoAndroid = snapshot.getString("versaoAndroid");
+                        //-----------------------------------------Q2 callback.onvotoCarregado agora tem modelo e versaoAndroid---------------
+                        callback.onVotoCarregado(opcao, modelo, versaoAndroid);
+                        //---------------------------------------------------------------------------------------------------------------------
                     } else {
-                        callback.onVotoCarregado(null);
+                        //------------------------------------Q2 adcionando valores null para as novas variaves--------------------------------
+                        callback.onVotoCarregado(null, null, null);
+                        //---------------------------------------------------------------------------------------------------------------------
                     }
                 })
-                .addOnFailureListener(e -> callback.onVotoCarregado(null));
+                //-------------------------------------------Q2----------------------------------------------------------------------------------
+                .addOnFailureListener(e -> callback.onVotoCarregado(null, null, null));
+        //-------------------------------------------------------------------------------------------------------------------------------------
     }
 //////QUESTÃO01\\\\\\
 //Declara um método público que não retorna valor (void).
@@ -337,6 +382,11 @@ public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
                                 Map<String, Object> voto = new HashMap<>();
                                 voto.put("opcaoEscolhida", opcao);
                                 voto.put("timestamp", FieldValue.serverTimestamp());
+                                // --- NOVO: ADICIONA METADADOS DO DISPOSITIVO AO REGISTRO DE VOTO ----------------Q2---------------------
+                                voto.put("modelo", Build.MODEL);
+                                voto.put("versaoAndroid", Build.VERSION.RELEASE);
+                                // ---------------------------------------------------------------------------------------------------------
+
 
                                 votoRef.set(voto)
                                         .addOnSuccessListener(unused2 -> callback.onVotoRegistrado(opcao))
@@ -355,27 +405,36 @@ public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
      * Reseta a enquete:
      * - Zera os contadores das três opções.
      * - Remove todos os documentos da subcoleção "votos" (votos por usuário).
-     *
+     * <p>
      * Útil na tela de administração para começar uma votação “do zero”.
      *
+     * @param motivo
      * @param callback callback de sucesso ou erro
      */
-    public void resetarEnquete(OperacaoCallback callback) {
+
+    public void resetarEnquete(String motivo, OperacaoCallback callback) {
         Map<String, Object> dados = new HashMap<>();
         dados.put("opcaoA", 0L);
         dados.put("opcaoB", 0L);
         dados.put("opcaoC", 0L);
 
-        // Primeiro zera os contadores
+        // 1. Zera os contadores
         enqueteRef.set(dados, SetOptions.merge())
                 .addOnSuccessListener(unused -> {
 
-                    // Depois remove todos os documentos da subcoleção "votos"
+                    // 2. Remove todos os documentos da subcoleção "votos"
                     enqueteRef.collection("votos")
                             .get()
                             .addOnSuccessListener(querySnapshot -> {
-                                querySnapshot.getDocuments()
-                                        .forEach(doc -> doc.getReference().delete());
+                                for (QueryDocumentSnapshot doc : querySnapshot) {
+                                    doc.getReference().delete();
+                                }
+
+                                // 3. REGISTRA O LOG DO RESET
+
+                                registrarLogReset(motivo);
+
+                                // Finaliza com sucesso
                                 callback.onSucesso();
                             })
                             .addOnFailureListener(callback::onErro);
@@ -384,10 +443,62 @@ public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
                 .addOnFailureListener(callback::onErro);
     }
 
+    private void registrarLogReset(String observacao) {
+        Map<String, Object> log = new HashMap<>();
+        log.put("tipo", "reset_votacao");
+        log.put("observacao", observacao);
+        log.put("timestamp", FieldValue.serverTimestamp()); // Hora do servidor
+
+        // Adiciona na subcoleção "logs" (cria documento com ID automático)
+        enqueteRef.collection("logs").add(log);
+    }
+
+    // Em EnqueteRepository.java
+
+// ... (cole este método em uma seção apropriada, como "Histórico de Logs") ...
+
+// =====================================================================
+//  Histórico de Logs
+// =====================================================================
+
+    /**
+     * Carrega a lista de logs (reset de votação) do Firestore.
+     * Os logs são ordenados pela data, do mais recente para o mais antigo.
+     *
+     * @param callback Callback para retornar a lista de logs ou um erro.
+     */
+    public void carregarHistoricoLogs(HistoricoLogsCallback callback) {
+        enqueteRef.collection("logs") // Acessa a subcoleção "logs"
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING) // Ordena pelo mais recente
+                .get()
+                .addOnSuccessListener(queryDocumentSnapshots -> {
+                    // Converte os documentos do Firestore em uma lista de mapas
+                    List<Map<String, Object>> listaDeLogs = new java.util.ArrayList<>();
+                    for (QueryDocumentSnapshot document : queryDocumentSnapshots) {
+                        listaDeLogs.add(document.getData());
+                    }
+                    // Envia a lista para a Activity através do callback
+                    callback.onHistoricoCarregado(listaDeLogs);
+                })
+                .addOnFailureListener(e -> {
+                    // Em caso de erro, notifica a Activity
+                    callback.onErro(e);
+                });
+    }
+
+
     // =====================================================================
     //  Interfaces de callback
     // =====================================================================
+    /**
+     * Callback para receber a lista de logs (histórico).
+     */
+    public interface HistoricoLogsCallback {
+        // Retorna uma lista de Mapas. Numa aplicação real, derailment seria List<LogModel>
+        void onHistoricoCarregado(List<Map<String, Object>> logs);
 
+        void onErro(@Nullable Exception e);
+    }
     /**
      * Listener para receber atualizações em tempo real da enquete.
      */
@@ -413,7 +524,9 @@ public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
         void onConfiguracaoCarregada(String titulo,
                                      String opcaoA,
                                      String opcaoB,
-                                     String opcaoC);
+                                     String opcaoC,
+                                     String mensagemRodape,
+                                     String dataHoraEncerramento);
 
         void onErro(@Nullable Exception e);
     }
@@ -431,7 +544,11 @@ public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
      * Callback para informar qual opção o usuário já votou (ou null).
      */
     public interface VotoUsuarioCallback {
-        void onVotoCarregado(@Nullable String opcao);
+        //-------------------------------------------------ALTERADO: ADICIONADO modelo e versaoAndroid------------Q2------------------------
+        void onVotoCarregado(@Nullable String opcao,
+                             @Nullable String modelo,
+                             @Nullable String versaoAndroid);
+        //----------------------------------------------------------------------------------------------------------------------------------
     }
 
     /**
