@@ -407,13 +407,12 @@ public class EnqueteRepository {
      * Reseta a enquete:
      * - Zera os contadores das três opções.
      * - Remove todos os documentos da subcoleção "votos" (votos por usuário).
-     * <p>
      * Útil na tela de administração para começar uma votação “do zero”.
      *
      * @param motivo
      * @param callback callback de sucesso ou erro
      */
-
+    /// -------------- Q4 - ----------
     public void resetarEnquete(String motivo, OperacaoCallback callback) {
         Map<String, Object> dados = new HashMap<>();
         dados.put("opcaoA", 0L);
@@ -455,14 +454,6 @@ public class EnqueteRepository {
         enqueteRef.collection("logs").add(log);
     }
 
-    // Em EnqueteRepository.java
-
-// ... (cole este método em uma seção apropriada, como "Histórico de Logs") ...
-
-// =====================================================================
-//  Histórico de Logs
-// =====================================================================
-
     /**
      * Carrega a lista de logs (reset de votação) do Firestore.
      * Os logs são ordenados pela data, do mais recente para o mais antigo.
@@ -496,7 +487,7 @@ public class EnqueteRepository {
      * Callback para receber a lista de logs (histórico).
      */
     public interface HistoricoLogsCallback {
-        // Retorna uma lista de Mapas. Numa aplicação real, derailment seria List<LogModel>
+        // Retorna uma lista de Mapas.
         void onHistoricoCarregado(List<Map<String, Object>> logs);
 
         void onErro(@Nullable Exception e);

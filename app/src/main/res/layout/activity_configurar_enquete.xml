@@ -130,6 +130,21 @@
             android:layout_marginTop="4dp"
             android:textColor="#0D47A1"
             android:textColorHint="#5472B2" />
+        <EditText
+            android:id="@+id/edtMensagemRodape"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:hint="Digite a mensagem do rodapé (Opcional)"
+            android:inputType="textCapSentences" />
+
+        <EditText
+            android:id="@+id/edtDataHoraEncerramento"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:hint="Encerramento (dd/MM/yyyy HH:mm)"
+            android:inputType="datetime" />
 
         <Button
             android:id="@+id/btnSalvarConfig"

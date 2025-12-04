@@ -24,8 +24,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.a3_teste_paineldevotao.data.EnqueteRepository;
 import com.example.a3_teste_paineldevotao.data.FirebaseManager;
 import com.example.a3_teste_paineldevotao.model.Enquete;
-// Certifique-se de que esta Activity existe no seu projeto ou remova o import se não usar
-import com.example.a3_teste_paineldevotao.HistoricoLogsActivity;
+
 
 import com.google.android.material.appbar.MaterialToolbar;
 import com.google.firebase.Timestamp;
@@ -191,10 +190,12 @@ public class MainActivity extends AppCompatActivity {
             startActivity(new Intent(this, ConfigurarEnqueteActivity.class));
             return true;
 
+            // Q3
+
         } else if (itemId == R.id.menu_lista_votantes) {
             startActivity(new Intent(this, ListaVotantesActivity.class));
             return true;
-
+        // ------------Q4
         } else if (itemId == R.id.action_historico) {
             // Ação corrigida: Abre o histórico de logs
             Intent intent = new Intent(this, HistoricoLogsActivity.class);
@@ -387,7 +388,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Carrega voto e preenche os metadados do dispositivo (Q2).
+     * Carrega voto e preenche os metadados do dispositivo (Q2 E Q1).
      */
     private void carregarVotoUsuario() {
         // Caso sua interface VotoUsuarioCallback exija o método de erro:
@@ -428,6 +429,7 @@ public class MainActivity extends AppCompatActivity {
 
         });
     }
+    //Q1
     public void onMetadadosCarregados(){
         enqueteRepository.carregarMetadadosVotoUsuario(new EnqueteRepository.VotoMetadadosCallback() {
             @Override
@@ -542,6 +544,7 @@ public class MainActivity extends AppCompatActivity {
     /**
      * Diálogo de Reset atualizado com Senha e Motivo.
      */
+    // Q4
     private void mostrarDialogoReset() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         builder.setTitle("Zerar Votação");
