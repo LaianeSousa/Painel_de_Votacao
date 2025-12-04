@@ -39,13 +39,15 @@ public class EnqueteRepository {
 //Interface para retornar os metadados do voto (opção, timestamp e uid)
 // para a MainActivity.
     public interface VotoMetadadosCallback {
+        //
         /**
          * Chamado quando o voto é encontrado. Retorna a opção, o timestamp e o UID.
-         */
-        void onMetadadosCarregados(String opcaoVoto, Timestamp timestamp, String uid);
-        /**
+         *
+
+         /**
          * Chamado quando o documento de voto não existe para o UID atual.
          */
+        void onMetadadosCarregados(String opcaoVoto, Timestamp timestamp, String uid);
         void onNaoVotou();
         /**
          * Chamado em caso de erro na comunicação com o Firestore.
@@ -301,48 +303,48 @@ public class EnqueteRepository {
                 .addOnFailureListener(e -> callback.onVotoCarregado(null, null, null));
         //-------------------------------------------------------------------------------------------------------------------------------------
     }
-//////QUESTÃO01\\\\\\
+    //////QUESTÃO01\\\\\\
 //Declara um método público que não retorna valor (void).
 // Ele recebe um callback como argumento, que será usado para enviar os dados
 // de volta para a MainActivity de forma assíncrona.
-public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
-    // 1. O firebaseManager é a fonte do FirebaseAuth, que precisamos para obter o UID
-    //Verifica se há um usuário logado no Firebase Auth. Se null, significa que o login
-    // anônimo falhou ou não ocorreu.
-    if (firebaseManager.getAuth().getCurrentUser() == null) {
-        callback.onNaoVotou();
-        return;
-        //Sai imediatamente do método, encerrando a execução.
-    }
+    public void carregarMetadadosVotoUsuario(VotoMetadadosCallback callback){
+        // 1. O firebaseManager é a fonte do FirebaseAuth, que precisamos para obter o UID
+        //Verifica se há um usuário logado no Firebase Auth. Se null, significa que o login
+        // anônimo falhou ou não ocorreu.
+        if (firebaseManager.getAuth().getCurrentUser() == null) {
+            callback.onNaoVotou();
+            return;
+            //Sai imediatamente do método, encerrando a execução.
+        }
 //Se o usuário estiver logado,obtém o UID exclusivo do usuário anônimo. O uso de final
 // garante que essa variável seja acessível dentro do bloco assíncrono (addOnSuccessListener)
 // logo abaixo.
-    final String uid = firebaseManager.getAuth().getCurrentUser().getUid(); // <--- Variável 'uid' declarada AQUI!
-    // Comentário (Requisito 8): Acessa a subcoleção "votos" usando o UID como ID do documento
-    firebaseManager.getEnqueteRef() //Obtém a referência ao documento principal da enquete
-            .collection("votos")//Acessa a subcoleção chamada "votos" dentro do documento da enquete.
-            .document(uid)//Aponta para o documento específico de voto do usuário, cujo ID é o uid
-            .get()//Inicia a operação de leitura pontual no Firestore.
-            .addOnSuccessListener(documentSnapshot -> { //Define o que acontece quando
-                // a leitura do Firestore é concluída com sucesso. O resultado da leitura (o documento
-                // de voto) é recebido no objeto
-                if (documentSnapshot.exists()) { //Verifica se o documento de voto existe no Firestore (ou seja, se o usuário já votou).
-                    // Documento encontrado: Extrai os campos necessários
-                    Timestamp timestamp = documentSnapshot.getTimestamp("timestamp"); // que guarda a data/hora do voto do documento.
-                    String opcao = documentSnapshot.getString("opcaoEscolhida");//Obtém o valor do campo "opcaoEscolhida"
+        final String uid = firebaseManager.getAuth().getCurrentUser().getUid(); // <--- Variável 'uid' declarada AQUI!
+        // Comentário (Requisito 8): Acessa a subcoleção "votos" usando o UID como ID do documento
+        firebaseManager.getEnqueteRef() //Obtém a referência ao documento principal da enquete
+                .collection("votos")//Acessa a subcoleção chamada "votos" dentro do documento da enquete.
+                .document(uid)//Aponta para o documento específico de voto do usuário, cujo ID é o uid
+                .get()//Inicia a operação de leitura pontual no Firestore.
+                .addOnSuccessListener(documentSnapshot -> { //Define o que acontece quando
+                    // a leitura do Firestore é concluída com sucesso. O resultado da leitura (o documento
+                    // de voto) é recebido no objeto
+                    if (documentSnapshot.exists()) { //Verifica se o documento de voto existe no Firestore (ou seja, se o usuário já votou).
+                        // Documento encontrado: Extrai os campos necessários
+                        Timestamp timestamp = documentSnapshot.getTimestamp("timestamp"); // que guarda a data/hora do voto do documento.
+                        String opcao = documentSnapshot.getString("opcaoEscolhida");//Obtém o valor do campo "opcaoEscolhida"
 
-                    // Se o voto foi encontrado, envia todos os dados solicitado de volta para a MainActivity através do callback.
-                    callback.onMetadadosCarregados(opcao, timestamp, uid);
-                } else {
-                    // Documento não existe (Usuário ainda não votou)
-                    callback.onNaoVotou();
-                }
-            })
-            .addOnFailureListener(e -> {
-                // Erro de comunicação/leitura
-                callback.onErro(e);
-            });
-}
+                        // Se o voto foi encontrado, envia todos os dados solicitado de volta para a MainActivity através do callback.
+                        callback.onMetadadosCarregados(opcao, timestamp, uid);
+                    } else {
+                        // Documento não existe (Usuário ainda não votou)
+                        callback.onNaoVotou();
+                    }
+                })
+                .addOnFailureListener(e -> {
+                    // Erro de comunicação/leitura
+                    callback.onErro(e);
+                });
+    }
     //////FIM QUESTÃO01//////
     /**
      * Registra o voto do usuário em uma das opções (A/B/C), garantindo:

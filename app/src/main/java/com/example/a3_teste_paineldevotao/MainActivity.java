@@ -24,8 +24,10 @@ import androidx.core.view.WindowInsetsCompat;
 import com.example.a3_teste_paineldevotao.data.EnqueteRepository;
 import com.example.a3_teste_paineldevotao.data.FirebaseManager;
 import com.example.a3_teste_paineldevotao.model.Enquete;
+// Certifique-se de que esta Activity existe no seu projeto ou remova o import se não usar
+import com.example.a3_teste_paineldevotao.HistoricoLogsActivity;
+
 import com.google.android.material.appbar.MaterialToolbar;
-import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
 
@@ -40,63 +42,65 @@ import java.util.Locale;
  * Responsabilidades:
  * - Exibir a pergunta da enquete e as opções de voto.
  * - Mostrar o total de votos por opção e o total geral.
- * - Permitir ao usuário votar (uma única vez).
- * - Exibir qual foi o voto do usuário.
- * - Permitir reset da enquete (com código de professor).
- * - Permitir acesso à tela de configuração da enquete (menu).
- *
- * Toda a lógica de Firestore está encapsulada em EnqueteRepository e FirebaseManager.
- * Aqui focamos na parte de UI e fluxo de tela.
+ * - Permitir ao usuário votar (uma única vez) com verificação de encerramento.
+ * - Exibir qual foi o voto do usuário e metadados do dispositivo (Q2).
+ * - Permitir reset da enquete com senha e motivo.
+ * - Navegação para histórico e configurações.
  */
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "PainelVotacao";
-    // Formato de data e hora que deve ser usado para parsear a string do Firestore e formatar o Timestamp
-    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
 
-    // Componentes de interface
+    // Formato de data usado para verificar o encerramento (yyyy-MM-dd HH:mm)
+    private static final SimpleDateFormat DATE_FORMAT =
+            new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+
+    // --- Componentes de Interface ---
     private TextView txtSubtitulo;
     private TextView txtPergunta;
     private TextView txtTituloResultados;
+
+    // Totais
     private TextView txtTotalA;
     private TextView txtTotalB;
     private TextView txtTotalC;
     private TextView txtTotalGeral;
+
+    // Status do usuário
     private TextView txtSeuVoto;
 
-    //////QUESTÃO01/////
-    /// 01 São necessários para exibir os novos metadados do voto (Data/Hora e UID)
-    /// na interface do usuário.
-    private TextView txtDataVoto;
-    private TextView txtSeuUid;
-    //////FIM QUESTÃO01//////
-
+    // Botões
     private Button btnVotarA;
     private Button btnVotarB;
     private Button btnVotarC;
     private Button btnReset;
 
-    //----------------------------------Q2----------------------------------------------------------------
+    // --- Q1: Campos Legados (Data/UID) ---
+    // Mantidos para compatibilidade caso o layout exija, mas a lógica principal foca na Q2
+    private TextView txtDataVoto;
+    private TextView txtSeuUid;
+
+
+    // --- Q2: Novos Campos (Dispositivo) ---
     private TextView txtModeloDispositivo;
     private TextView txtVersaoAndroid;
-    //----------------------------------------------------------------------------------------------------
-    // Q5: NOVOS CAMPOS DE RODAPÉ E ENCERRAMENTO
+
+    // --- Q5: Rodapé e Encerramento ---
     private TextView txtRodape;
     private TextView txtDataEncerramento;
 
-    // =====================================================================
-    //  Firebase / Repositório
-    // =====================================================================
-
+    // --- Firebase / Repositório ---
     private FirebaseManager firebaseManager;
     private FirebaseAuth auth;
     private EnqueteRepository enqueteRepository;
     private ListenerRegistration resultadosListener;
-    private Enquete enqueteAtual; // Armazena o último estado da enquete para checagem de tempo
+
+    // Estado
+    private Enquete enqueteAtual; // Armazena o último estado da enquete
     private String votoDoUsuario = null; // Armazena o voto do usuário localmente
 
     // =====================================================================
-    //  Ciclo de vida
+    //  Ciclo de Vida
     // =====================================================================
 
     @Override
@@ -118,11 +122,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
 
-        // Reforço: carrega estado atual da enquete ao voltar para a tela
+        // Recarrega a enquete ao voltar para a tela
         enqueteRepository.carregarEnquete(new EnqueteRepository.EnqueteCarregadaCallback() {
             @Override
             public void onEnqueteCarregada(Enquete enquete) {
-                enqueteAtual = enquete; // Garante que a enqueteAtual não seja nula
+                enqueteAtual = enquete;
                 atualizarUIComEnquete(enquete);
             }
 
@@ -131,19 +135,15 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Erro ao carregar enquete (onResume): ", e);
             }
         });
-        ///////////////////////////QUESTÃO01/////////////////////////////////
-        //O carregamento do voto é feito em onResume() para garantir que os
-        // metadados (Data/Hora e UID) estejam atualizados ao iniciar ou retornar
-        // à tela.
 
+        // Carrega o voto do usuário (incluindo metadados Q2)
         carregarVotoUsuario();
-        /////////////////////// FIM QUESTÃO01///////////////////////////////////
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        // Remove listener em tempo real para evitar leaks
+        // Remove listener em tempo real para evitar memory leaks
         if (resultadosListener != null) {
             resultadosListener.remove();
             resultadosListener = null;
@@ -151,12 +151,9 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // =====================================================================
-    //  Toolbar e Insets (UI)
+    //  Configurações de UI (Toolbar, Insets, Menu)
     // =====================================================================
 
-    /**
-     * Configura a Toolbar como ActionBar da tela principal.
-     */
     private void configurarToolbar() {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
@@ -165,18 +162,11 @@ public class MainActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowTitleEnabled(true);
             getSupportActionBar().setTitle("Painel de Votação");
         }
-
-        // Em algumas versões, setTitleCentered pode não existir; protegemos com try/catch
         try {
             toolbar.setTitleCentered(false);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) { }
     }
 
-    /**
-     * Ajusta os paddings para considerar as barras de sistema
-     * (status bar, nav bar) com EdgeToEdge.
-     */
     private void aplicarInsets() {
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.layoutMain),
                 (v, insets) -> {
@@ -186,389 +176,367 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
-    // =====================================================================
-    //  Menu (acesso à tela de configuração)
-    // =====================================================================
-
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.menu_main, menu);
         return true;
     }
 
-    /**
-     * Menu superior da tela principal.
-     * Aqui só temos a opção de ir para "Configurar enquete".
-     */
     @Override
     public boolean onOptionsItemSelected(@NonNull MenuItem item) {
         int itemId = item.getItemId();
 
         if (itemId == R.id.menu_configurar_enquete) {
             startActivity(new Intent(this, ConfigurarEnqueteActivity.class));
-            Toast.makeText(this, "Configurações...", Toast.LENGTH_SHORT).show();
             return true;
+
         } else if (itemId == R.id.menu_lista_votantes) {
             startActivity(new Intent(this, ListaVotantesActivity.class));
             return true;
+
         } else if (itemId == R.id.action_historico) {
-            // --- AQUI ESTÁ A CORREÇÃO: Chama a tela de Histórico ---
+            // Ação corrigida: Abre o histórico de logs
             Intent intent = new Intent(this, HistoricoLogsActivity.class);
             startActivity(intent);
             return true;
+
         } else {
             return super.onOptionsItemSelected(item);
         }
     }
 
     // =====================================================================
-    //  Inicialização (Firebase, Views, Login)
+    //  Inicialização
     // =====================================================================
 
-    /**
-     * Inicializa FirebaseManager, FirebaseAuth e EnqueteRepository.
-     */
     private void inicializarFirebase() {
         firebaseManager = FirebaseManager.getInstance(this);
         auth = firebaseManager.getAuth();
         enqueteRepository = new EnqueteRepository(this);
     }
 
-    /**
-     * Faz o findViewById de todos os componentes da interface.
-     */
     private void inicializarViews() {
+        // Textos Gerais
         txtSubtitulo = findViewById(R.id.txtSubtitulo);
         txtPergunta = findViewById(R.id.txtPergunta);
         txtTituloResultados = findViewById(R.id.txtTituloResultados);
+
+        // Contadores
         txtTotalA = findViewById(R.id.txtTotalA);
         txtTotalB = findViewById(R.id.txtTotalB);
         txtTotalC = findViewById(R.id.txtTotalC);
         txtTotalGeral = findViewById(R.id.txtTotalGeral);
+
+        // Status Voto
         txtSeuVoto = findViewById(R.id.txtSeuVoto);
 
-        ///////QUESTÃO01/////
-        ///02 Conecta as variáveis Java aos componentes visuais (criados no XML)
-        ///através de seus IDs
+        // Q1 (Legado - tenta encontrar no layout, se não existir, ignora)
         txtDataVoto = findViewById(R.id.txtDataVoto);
         txtSeuUid = findViewById(R.id.txtSeuUid);
-        //////FIM QUESTÃO01//////
 
-        //-------------------INICIALIZAÇÃO DOS NOVOS TEXTVIEWS ---Q2-------------------------------------
+        // Q2: Metadados do Dispositivo
         txtModeloDispositivo = findViewById(R.id.txtModeloDispositivo);
         txtVersaoAndroid = findViewById(R.id.txtVersaoAndroid);
-        //---------------------------------------------------------------------------------------------
 
-        // Q5: Inicialização dos novos TextViews de Rodapé e Encerramento.
-        // O ID de layout usado é 'txtEncerramento', então o findViewById deve corresponder.
+        // Q5: Rodapé e Encerramento
         txtRodape = findViewById(R.id.txtRodape);
         txtDataEncerramento = findViewById(R.id.txtEncerramento);
 
+        // Botões
         btnVotarA = findViewById(R.id.btnVotarA);
         btnVotarB = findViewById(R.id.btnVotarB);
         btnVotarC = findViewById(R.id.btnVotarC);
         btnReset = findViewById(R.id.btnReset);
     }
 
-    /**
-     * Faz login anônimo no Firebase Auth.
-     * Isso permite identificar o usuário unicamente (UID) sem exigir cadastro.
-     */
     private void fazerLoginAnonimo() {
-        // Se já está logado, não precisa fazer login novamente
         if (auth.getCurrentUser() != null) {
             configurarPosLogin();
             return;
         }
-
-        auth.signInAnonymously()
-                .addOnCompleteListener(this, task -> {
-                    if (task.isSuccessful()) {
-                        Toast.makeText(
-                                MainActivity.this,
-                                "Conectado (anônimo).",
-                                Toast.LENGTH_SHORT
-                        ).show();
-                        configurarPosLogin();
-                    } else {
-                        Toast.makeText(
-                                MainActivity.this,
-                                "Erro ao conectar. Verifique a conexão e as regras do Firebase.",
-                                Toast.LENGTH_LONG
-                        ).show();
-                        Log.w(TAG, "signInAnonymously:failure", task.getException());
-                    }
-                });
+        auth.signInAnonymously().addOnCompleteListener(this, task -> {
+            if (task.isSuccessful()) {
+                configurarPosLogin();
+                Toast.makeText(MainActivity.this, "Conectado (Anônimo)", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(MainActivity.this, "Erro ao conectar.", Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
-    /**
-     * Carrega a enquete e o voto do usuário após o login.
-     * Este método é chamado somente depois que o usuário está autenticado.
-     */
     private void configurarPosLogin() {
-        if (auth.getCurrentUser() == null) return;
+        // Garante documento inicial
+        enqueteRepository.inicializarSeNecessario();
+        // Listener em tempo real
+        configurarListenerResultados();
+        // Carrega voto do usuário
+        carregarVotoUsuario();
 
-        enqueteRepository.carregarEnquete(new EnqueteRepository.EnqueteCarregadaCallback() {
+        // Preenche UID se o campo existir (Q1)
+        if (txtSeuUid != null && auth.getCurrentUser() != null) {
+            txtSeuUid.setText("ID: " + auth.getCurrentUser().getUid());
+        }
+        // preencher txtDataVoto
+        if (txtDataVoto != null) {
+            txtDataVoto.setText("Data: " + new Date().toString());
+        }
+    }
+
+    private void configurarListenerResultados() {
+        resultadosListener = enqueteRepository.observarEnquete(new EnqueteRepository.EnqueteListener() {
             @Override
-            public void onEnqueteCarregada(Enquete enquete) {
-                enqueteAtual = enquete; // Armazena o estado inicial
+            public void onEnqueteAtualizada(Enquete enquete) {
+                enqueteAtual = enquete;
                 atualizarUIComEnquete(enquete);
-                configurarListenerResultados();
             }
 
             @Override
             public void onErro(Exception e) {
-                Toast.makeText(MainActivity.this, "Erro ao carregar enquete.", Toast.LENGTH_SHORT).show();
-                Log.e(TAG, "Erro ao carregar enquete inicial: ", e);
+                if (e != null) Log.e(TAG, "Erro no listener da enquete: ", e);
             }
         });
-        carregarVotoUsuario();
     }
 
-
-    /**
-     * Configura os listeners de clique para todos os botões da tela.
-     */
     private void configurarBotoes() {
         btnVotarA.setOnClickListener(v -> registrarVoto("A"));
         btnVotarB.setOnClickListener(v -> registrarVoto("B"));
         btnVotarC.setOnClickListener(v -> registrarVoto("C"));
-        btnReset.setOnClickListener(v -> solicitarResetEnquete());
+        // Chama o diálogo com senha e motivo (Versão atualizada)
+        btnReset.setOnClickListener(v -> mostrarDialogoReset());
     }
 
     // =====================================================================
-    //  Lógica de Votação
+    //  Lógica de UI e Votação
     // =====================================================================
 
-    /**
-     * Registra o voto do usuário no Firestore.
-     *
-     * @param opcao A opção escolhida pelo usuário ("A", "B", ou "C").
-     */
-    private void registrarVoto(String opcao) {
-        if (auth.getCurrentUser() == null) {
-            Toast.makeText(this, "Aguarde, conectando...", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Validação Q5: Checa se a enquete já foi encerrada
-        if (enqueteAtual != null && enqueteAtual.isEncerrada()) {
-            Toast.makeText(this, "Votação encerrada.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Trava os botões para evitar votos múltiplos enquanto a operação ocorre
-        travarBotoesVotacao();
-
-        enqueteRepository.registrarVoto(opcao, new EnqueteRepository.VotoCallback() {
-            @Override
-            public void onSucesso() {
-                Toast.makeText(MainActivity.this, "Voto '" + opcao + "' registrado!", Toast.LENGTH_SHORT).show();
-                votoDoUsuario = opcao; // Armazena localmente
-                atualizarSeuVotoUI(opcao, new Timestamp(new Date())); // Atualiza a UI imediatamente com a data atual
-            }
-
-            @Override
-            public void onFalha(Exception e) {
-                Toast.makeText(MainActivity.this, "Erro ao votar: " + e.getMessage(), Toast.LENGTH_LONG).show();
-                destravarBotoesVotacao(); // Destrava se deu erro
-            }
-
-            @Override
-            public void onVotoJaExistente() {
-                Toast.makeText(MainActivity.this, "Você já votou nesta enquete.", Toast.LENGTH_SHORT).show();
-                // Não precisa destravar, pois o estado de "já votou" deve ser mantido
-            }
-        });
-    }
-
-    /**
-     * Carrega e exibe o voto anterior do usuário, se houver.
-     */
-    private void carregarVotoUsuario() {
-        if (auth.getCurrentUser() == null) {
-            return; // Ainda não logado
-        }
-
-        enqueteRepository.getVotoDoUsuario(new EnqueteRepository.VotoUsuarioCallback() {
-            @Override
-            public void onVotoCarregado(String opcao, Timestamp dataVoto) {
-                if (opcao != null) {
-                    votoDoUsuario = opcao;
-                    atualizarSeuVotoUI(opcao, dataVoto);
-                    travarBotoesVotacao();
-                } else {
-                    votoDoUsuario = null;
-                    atualizarSeuVotoUI(null, null);
-                    destravarBotoesVotacao();
-                }
-            }
-
-            @Override
-            public void onErro(Exception e) {
-                Log.e(TAG, "Erro ao buscar voto do usuário: ", e);
-            }
-        });
-    }
-
-    /**
-     * Exibe um diálogo para solicitar o código do professor e resetar a enquete.
-     */
-    private void solicitarResetEnquete() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Resetar Enquete");
-        builder.setMessage("Digite o código do professor para limpar todos os votos:");
-
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        builder.setView(input);
-
-        builder.setPositiveButton("Resetar", (dialog, which) -> {
-            String codigo = input.getText().toString();
-            enqueteRepository.resetarEnquete(codigo, new EnqueteRepository.ResetCallback() {
-                @Override
-                public void onSucesso() {
-                    Toast.makeText(MainActivity.this, "Enquete resetada!", Toast.LENGTH_SHORT).show();
-                    // UI será atualizada pelo listener em tempo real
-                }
-
-                @Override
-                public void onFalha(String mensagem) {
-                    Toast.makeText(MainActivity.this, mensagem, Toast.LENGTH_LONG).show();
-                }
-            });
-        });
-        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
-
-        builder.show();
-    }
-
-    // =====================================================================
-    //  Listeners e Atualização de UI
-    // =====================================================================
-
-    /**
-     * Configura um listener em tempo real para os resultados da enquete.
-     * A UI é atualizada sempre que houver uma mudança no Firestore.
-     */
-    private void configurarListenerResultados() {
-        if (resultadosListener == null) {
-            resultadosListener = enqueteRepository.adicionarListenerResultados(
-                    (enquete, e) -> {
-                        if (e != null) {
-                            Log.e(TAG, "Erro no listener de resultados: ", e);
-                            return;
-                        }
-                        if (enquete != null) {
-                            enqueteAtual = enquete;
-                            atualizarUIComEnquete(enquete);
-                        }
-                    }
-            );
-        }
-    }
-
-    /**
-     * Atualiza todos os componentes da UI com os dados da enquete.
-     *
-     * @param enquete O objeto Enquete com os dados mais recentes.
-     */
     private void atualizarUIComEnquete(Enquete enquete) {
         if (enquete == null) return;
 
-        // Atualiza pergunta e subtitulo
-        txtPergunta.setText(enquete.getPergunta());
-        txtSubtitulo.setText(enquete.getSubtitulo());
+        // 1. Textos da Pergunta e Botões
+        if (enquete.getTituloEnquete() != null) txtPergunta.setText(enquete.getTituloEnquete());
+        if (enquete.getSubTitulo() != null && txtSubtitulo != null) txtSubtitulo.setText(enquete.getSubTitulo());
 
-        // Atualiza totais de votos
-        txtTotalA.setText("Opção A: " + enquete.getTotalVotosA());
-        txtTotalB.setText("Opção B: " + enquete.getTotalVotosB());
-        txtTotalC.setText("Opção C: " + enquete.getTotalVotosC());
-        txtTotalGeral.setText("Total de Votos: " + enquete.getTotalGeral());
+        if (enquete.getTextoOpcaoA() != null) btnVotarA.setText(enquete.getTextoOpcaoA());
+        if (enquete.getTextoOpcaoB() != null) btnVotarB.setText(enquete.getTextoOpcaoB());
+        if (enquete.getTextoOpcaoC() != null) btnVotarC.setText(enquete.getTextoOpcaoC());
 
-        // Atualiza rodapé e data de encerramento (Q5)
-        txtRodape.setText(enquete.getRodape());
-        if (enquete.getDataEncerramento() != null) {
+        // 2. Cálculos e Exibição de Totais
+        long votosA = enquete.getOpcaoA();
+        long votosB = enquete.getOpcaoB();
+        long votosC = enquete.getOpcaoC();
+        long total = votosA + votosB + votosC;
+
+        long percA = (total > 0) ? (votosA * 100 / total) : 0;
+        long percB = (total > 0) ? (votosB * 100 / total) : 0;
+        long percC = (total > 0) ? (votosC * 100 / total) : 0;
+
+        txtTotalA.setText("Opção A: " + votosA + " votos (" + percA + "%)");
+        txtTotalB.setText("Opção B: " + votosB + " votos (" + percB + "%)");
+        txtTotalC.setText("Opção C: " + votosC + " votos (" + percC + "%)");
+        txtTotalGeral.setText("Total de votos: " + total);
+
+        // 3. Rodapé e Encerramento (Q5)
+        String rodape = enquete.getMensagemRodape();
+        if (rodape != null && !rodape.trim().isEmpty()) {
+            txtRodape.setText(rodape);
+            txtRodape.setVisibility(View.VISIBLE);
+        } else {
+            txtRodape.setVisibility(View.GONE);
+        }
+
+        // Verificação de Data de Encerramento
+        String encerramentoStr = enquete.getDataHoraEncerramento();
+        boolean votacaoEncerrada = false;
+
+        if (encerramentoStr != null && !encerramentoStr.trim().isEmpty()) {
+            txtDataEncerramento.setText(String.format("Encerramento: %s", encerramentoStr));
+            txtDataEncerramento.setVisibility(View.VISIBLE);
+
             try {
-                // Tenta parsear a string de data/hora
-                Date dataFim = DATE_FORMAT.parse(enquete.getDataEncerramento());
-                // Formata de volta para um padrão amigável
-                String dataFormatada = new SimpleDateFormat("dd/MM/yyyy 'às' HH:mm", Locale.getDefault()).format(dataFim);
-                txtDataEncerramento.setText("Encerra em: " + dataFormatada);
-                txtDataEncerramento.setVisibility(View.VISIBLE);
+                Date dataEncerramento = DATE_FORMAT.parse(encerramentoStr);
+                Date dataAtual = new Date();
+                if (dataEncerramento != null && dataAtual.after(dataEncerramento)) {
+                    votacaoEncerrada = true;
+                }
             } catch (ParseException e) {
-                // Se o formato for inesperado, apenas mostra a string original
-                txtDataEncerramento.setText("Encerra em: " + enquete.getDataEncerramento());
-                txtDataEncerramento.setVisibility(View.VISIBLE);
-                Log.e(TAG, "Erro ao parsear data de encerramento: ", e);
+                Log.e(TAG, "Erro ao parsear data de encerramento.", e);
+                txtDataEncerramento.setText("Encerramento: Data Inválida");
             }
         } else {
             txtDataEncerramento.setVisibility(View.GONE);
         }
 
-        // Se o usuário já votou, mantém os botões travados.
-        // Senão, verifica se a enquete está encerrada para travar/destravar.
-        if (votoDoUsuario == null) {
-            if (enquete.isEncerrada()) {
-                travarBotoesVotacao();
-                Toast.makeText(this, "Votação encerrada.", Toast.LENGTH_SHORT).show();
+        // 4. Controle dos Botões (Encerrado ou Já Votou)
+        if (votacaoEncerrada) {
+            setBotoesVotoEnabled(false);
+            if (votoDoUsuario == null) {
+                txtSeuVoto.setText("Votação encerrada.");
             } else {
-                destravarBotoesVotacao();
+                txtSeuVoto.setText("Votação encerrada (Seu voto: " + votoDoUsuario + ")");
             }
-        }
-    }
-
-
-    /**
-     * Atualiza a seção "Seu Voto" na UI.
-     *
-     * @param opcao    A opção votada ("A", "B", "C") ou null se não houver voto.
-     * @param dataVoto O Timestamp do voto.
-     */
-    private void atualizarSeuVotoUI(String opcao, Timestamp dataVoto) {
-        if (auth.getCurrentUser() == null) return;
-
-        String uid = auth.getCurrentUser().getUid();
-
-        if (opcao != null) {
-            txtSeuVoto.setText("Sua escolha: " + opcao);
-            txtSeuUid.setText("Seu ID: " + uid);
-            if (dataVoto != null) {
-                txtDataVoto.setText("Data do voto: " + DATE_FORMAT.format(dataVoto.toDate()));
-            } else {
-                txtDataVoto.setText("Data do voto: N/D");
-            }
-            txtSeuVoto.setVisibility(View.VISIBLE);
-            txtSeuUid.setVisibility(View.VISIBLE);
-            txtDataVoto.setVisibility(View.VISIBLE);
+        } else if (votoDoUsuario != null) {
+            setBotoesVotoEnabled(false);
+            txtSeuVoto.setText("Seu voto: opção " + votoDoUsuario);
         } else {
-            txtSeuVoto.setVisibility(View.GONE);
-            txtSeuUid.setVisibility(View.GONE);
-            txtDataVoto.setVisibility(View.GONE);
+            setBotoesVotoEnabled(true);
+            txtSeuVoto.setText("Seu voto: ainda não votou");
         }
     }
 
-    /**
-     * Desabilita os botões de votação para impedir novos votos.
-     */
-    private void travarBotoesVotacao() {
-        btnVotarA.setEnabled(false);
-        btnVotarB.setEnabled(false);
-        btnVotarC.setEnabled(false);
-        btnVotarA.setAlpha(0.5f);
-        btnVotarB.setAlpha(0.5f);
-        btnVotarC.setAlpha(0.5f);
+    private void setBotoesVotoEnabled(boolean enabled) {
+        btnVotarA.setEnabled(enabled);
+        btnVotarB.setEnabled(enabled);
+        btnVotarC.setEnabled(enabled);
+        float alpha = enabled ? 1.0f : 0.5f;
+        btnVotarA.setAlpha(alpha);
+        btnVotarB.setAlpha(alpha);
+        btnVotarC.setAlpha(alpha);
     }
 
     /**
-     * Habilita os botões de votação.
+     * Carrega voto e preenche os metadados do dispositivo (Q2).
      */
-    private void destravarBotoesVotacao() {
-        btnVotarA.setEnabled(true);
-        btnVotarB.setEnabled(true);
-        btnVotarC.setEnabled(true);
-        btnVotarA.setAlpha(1.0f);
-        btnVotarB.setAlpha(1.0f);
-        btnVotarC.setAlpha(1.0f);
+    private void carregarVotoUsuario() {
+        enqueteRepository.carregarVotoUsuario(new EnqueteRepository.VotoUsuarioCallback() {
+            @Override
+            public void onVotoCarregado(String opcao, String modelo, String versaoAndroid) {
+                votoDoUsuario = opcao;
+                final String traco = "—";
+
+                if (opcao != null) {
+                    txtSeuVoto.setText("Seu voto: opção " + opcao);
+
+                    // Q2: Exibe metadados salvos
+                    if(txtModeloDispositivo != null)
+                        txtModeloDispositivo.setText("Modelo: " + (modelo != null ? modelo : traco));
+                    if(txtVersaoAndroid != null)
+                        txtVersaoAndroid.setText("Android: " + (versaoAndroid != null ? versaoAndroid : traco));
+
+                    // Se já votou, bloqueia botões (a validação de encerramento pode sobrescrever isso depois)
+                    setBotoesVotoEnabled(false);
+                } else {
+                    txtSeuVoto.setText("Seu voto: ainda não votou");
+
+                    // Q2: Exibe metadados atuais do dispositivo
+                    if(txtModeloDispositivo != null)
+                        txtModeloDispositivo.setText("Modelo: " + android.os.Build.MODEL);
+                    if(txtVersaoAndroid != null)
+                        txtVersaoAndroid.setText("Android: " + android.os.Build.VERSION.RELEASE);
+
+                    setBotoesVotoEnabled(true);
+                }
+
+                // Atualiza UI geral para checar se a votação encerrou
+                if (enqueteAtual != null) {
+                    atualizarUIComEnquete(enqueteAtual);
+                }
+            }
+            // Caso sua interface VotoUsuarioCallback exija o método de erro:
+            // @Override public void onErro(Exception e) { ... }
+        });
+    }
+
+    /**
+     * Registra voto com validação de encerramento (Q5).
+     */
+    private void registrarVoto(String opcao) {
+        if (enqueteAtual == null) {
+            Toast.makeText(this, "Aguarde o carregamento...", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // Q5: Verifica se está encerrada antes de enviar
+        String encerramentoStr = enqueteAtual.getDataHoraEncerramento();
+        if (encerramentoStr != null && !encerramentoStr.trim().isEmpty()) {
+            try {
+                Date dataEncerramento = DATE_FORMAT.parse(encerramentoStr);
+                Date dataAtual = new Date();
+                if (dataEncerramento != null && dataAtual.after(dataEncerramento)) {
+                    Toast.makeText(this, "Votação encerrada pelo professor.", Toast.LENGTH_LONG).show();
+                    txtSeuVoto.setText("Votação encerrada.");
+                    setBotoesVotoEnabled(false);
+                    return;
+                }
+            } catch (ParseException e) {
+                Log.e(TAG, "Erro data encerramento, prosseguindo com voto.", e);
+            }
+        }
+
+        enqueteRepository.registrarVoto(opcao, new EnqueteRepository.RegistrarVotoCallback() {
+            @Override
+            public void onVotoRegistrado(String opcaoRegistrada) {
+                votoDoUsuario = opcaoRegistrada;
+                txtSeuVoto.setText("Seu voto: opção " + opcaoRegistrada);
+                setBotoesVotoEnabled(false);
+                Toast.makeText(MainActivity.this, "Voto registrado!", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onJaVotou(String opcaoExistente) {
+                votoDoUsuario = opcaoExistente;
+                txtSeuVoto.setText("Seu voto: opção " + opcaoExistente);
+                setBotoesVotoEnabled(false);
+                Toast.makeText(MainActivity.this, "Você já votou.", Toast.LENGTH_SHORT).show();
+            }
+
+            @Override
+            public void onErro(Exception e) {
+                Log.e(TAG, "Erro ao votar: ", e);
+                Toast.makeText(MainActivity.this, "Erro ao registrar voto.", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * Diálogo de Reset atualizado com Senha e Motivo.
+     */
+    private void mostrarDialogoReset() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Zerar Votação");
+        builder.setMessage("Digite a senha e o motivo do reset:");
+
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 20, 50, 20);
+
+        final EditText inputSenha = new EditText(this);
+        inputSenha.setHint("Senha do Professor");
+        inputSenha.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+        layout.addView(inputSenha);
+
+        final EditText inputMotivo = new EditText(this);
+        inputMotivo.setHint("Motivo (ex: Nova turma)");
+        layout.addView(inputMotivo);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Zerar", (dialog, which) -> {
+            String senha = inputSenha.getText().toString();
+            String motivo = inputMotivo.getText().toString();
+
+            if (senha.equals("1234")) { // Senha hardcoded conforme requisito
+                if (motivo.isEmpty()) motivo = "Sem motivo informado";
+
+                enqueteRepository.resetarEnquete(motivo, new EnqueteRepository.OperacaoCallback() {
+                    @Override
+                    public void onSucesso() {
+                        votoDoUsuario = null;
+                        txtSeuVoto.setText("Seu voto: ainda não votou");
+                        Toast.makeText(MainActivity.this, "Enquete zerada e log gravado!", Toast.LENGTH_SHORT).show();
+                        setBotoesVotoEnabled(true);
+                    }
+
+                    @Override
+                    public void onErro(Exception e) {
+                        Toast.makeText(MainActivity.this, "Erro: " + e.getMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
+            } else {
+                Toast.makeText(MainActivity.this, "Senha incorreta!", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.cancel());
+        builder.show();
     }
 }

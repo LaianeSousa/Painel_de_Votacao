@@ -29,6 +29,7 @@ public class Enquete {
     //----------------------------------------Q5--------------------------------------------------------------
     private String mensagemRodape;
     private String dataHoraEncerramento;
+    private String subTitulo;
     //----------------------------------------------------------------------------------------------
 
 
@@ -60,7 +61,9 @@ public class Enquete {
                    String textoOpcaoC,
                    long opcaoA,
                    long opcaoB,
-                   long opcaoC) {
+                   long opcaoC
+
+                   ) {
 
         this.tituloEnquete = tituloEnquete;
         this.textoOpcaoA = textoOpcaoA;
@@ -96,7 +99,12 @@ public class Enquete {
     }
     //---------------------------------------------------------------------------------------------------
 
-
+    public String getSubTitulo(){
+        return subTitulo;
+    }
+    public void setSubTitulo(String subTitulo){
+        this.subTitulo = subTitulo;
+    }
     public String getTituloEnquete() {
         return tituloEnquete;
     }
