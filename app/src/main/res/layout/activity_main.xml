@@ -177,6 +177,27 @@
             android:textColor="#616161"
             android:textSize="14sp" />
 
+        //////QUESTÃO01//////
+        <!-- NOVO: Data e Hora do Voto (Requisito 1) -->
+        <TextView
+            android:id="@+id/txtDataVoto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="4dp"
+            android:text="Data do voto: -"
+            android:textColor="#616161"
+            android:textSize="14sp" />
+
+        <!-- NOVO: UID do Usuário Anônimo (Requisito 1) -->
+        <TextView
+            android:id="@+id/txtSeuUid"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:text="Seu UID: -"
+            android:textColor="#616161"
+            android:textSize="12sp" />
+//FIM QUESTÃO01//
         <!-- Botão para o professor zerar votos -->
         <Button
             android:id="@+id/btnReset"

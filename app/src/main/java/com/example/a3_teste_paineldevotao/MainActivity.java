@@ -23,8 +23,12 @@ import com.example.a3_teste_paineldevotao.data.EnqueteRepository;
 import com.example.a3_teste_paineldevotao.data.FirebaseManager;
 import com.example.a3_teste_paineldevotao.model.Enquete;
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
+
+import java.text.SimpleDateFormat;
+import java.util.Locale;
 
 /**
  * Tela principal do aplicativo (Painel de Votação).
@@ -41,6 +45,10 @@ import com.google.firebase.firestore.ListenerRegistration;
  * Aqui focamos na parte de UI e fluxo de tela.
  */
 public class MainActivity extends AppCompatActivity {
+    /// Questão 01 ///
+    //03 Define o formato padrão para converter o Timestamp do Firestore em uma string legível.
+    private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss", Locale.getDefault());
+    /// FIM Questão 01 ///
 
     private static final String TAG = "PainelVotacao";
 
@@ -57,6 +65,13 @@ public class MainActivity extends AppCompatActivity {
     private TextView txtTotalC;
     private TextView txtTotalGeral;
     private TextView txtSeuVoto;
+
+    //////QUESTÃO01/////
+    /// 01 São necessários para exibir os novos metadados do voto (Data/Hora e UID)
+    /// na interface do usuário.
+    private TextView txtDataVoto;
+    private TextView txtSeuUid;
+    //////FIM QUESTÃO01//////
 
     private Button btnVotarA;
     private Button btnVotarB;
@@ -107,8 +122,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.e(TAG, "Erro ao carregar enquete (onResume): ", e);
             }
         });
+        ///////////////////////////QUESTÃO01/////////////////////////////////
+        //O carregamento do voto é feito em onResume() para garantir que os
+        // metadados (Data/Hora e UID) estejam atualizados ao iniciar ou retornar
+        // à tela.
 
         carregarVotoUsuario();
+        /////////////////////// FIM QUESTÃO01///////////////////////////////////
     }
 
     @Override
@@ -207,6 +227,13 @@ public class MainActivity extends AppCompatActivity {
         txtTotalC = findViewById(R.id.txtTotalC);
         txtTotalGeral = findViewById(R.id.txtTotalGeral);
         txtSeuVoto = findViewById(R.id.txtSeuVoto);
+        ///////QUESTÃO01/////
+        ///02 Conecta as variáveis Java aos componentes visuais (criados no XML)
+        ///através de seus IDs
+        txtDataVoto = findViewById(R.id.txtDataVoto);
+        txtSeuUid = findViewById(R.id.txtSeuUid);
+        //////FIM QUESTÃO01//////
+
 
         btnVotarA = findViewById(R.id.btnVotarA);
         btnVotarB = findViewById(R.id.btnVotarB);
@@ -327,115 +354,173 @@ public class MainActivity extends AppCompatActivity {
      * Carrega do Firestore qual opção o usuário já votou (se houver)
      * e atualiza o texto "Seu voto".
      */
+/// FOI TOLTALMENTE ALTERADO PARA QUESTÃO01/////////////////////////////////////////////////////
     private void carregarVotoUsuario() {
-        enqueteRepository.carregarVotoUsuario(opcao -> {
-            if (opcao != null) {
+        // Comentário (Requisito 13): O carregamento ocorre em onResume() e após o voto
+        // para garantir que os metadados (Data/Hora, UID) estejam sempre atualizados.
+
+        // Chamamos o novo método do repositório para obter todos os metadados
+        enqueteRepository.carregarMetadadosVotoUsuario(new EnqueteRepository.VotoMetadadosCallback() {
+
+//         onMetadadosCarregados Converte o objeto Timestamp do Firestore para o formato
+//         de String definido
+            @Override
+            public void onMetadadosCarregados(String opcao, Timestamp timestamp, String uid) {
+                // Voto existe: exibe as informações
+
+                //12 Formata o timestamp para exibição na UI
+                String dataFormatada = DATE_FORMAT.format(timestamp.toDate());
+
+                // 4/6: Exibe as informações adicionais
                 txtSeuVoto.setText("Seu voto: opção " + opcao);
-            } else {
+                txtDataVoto.setText("Data do voto: " + dataFormatada);
+                txtSeuUid.setText("Seu UID: " + uid);
+            }
+
+            @Override
+            public void onNaoVotou() {
+                //9 Se ainda não votou, exibe os textos padrão
                 txtSeuVoto.setText("Seu voto: ainda não votou");
-            }
-        });
-    }
+                txtDataVoto.setText("Data do voto: -");
 
-    // =====================================================================
-    //  Ações da interface (votar e resetar enquete)
-    // =====================================================================
-
-    /**
-     * Configura os listeners dos botões da tela.
-     */
-    private void configurarBotoes() {
-        btnVotarA.setOnClickListener(v -> registrarVoto("A"));
-        btnVotarB.setOnClickListener(v -> registrarVoto("B"));
-        btnVotarC.setOnClickListener(v -> registrarVoto("C"));
-        btnReset.setOnClickListener(v -> mostrarDialogoReset());
-    }
-
-    /**
-     * Envia a opção selecionada para o EnqueteRepository registrar o voto.
-     */
-    private void registrarVoto(String opcao) {
-        enqueteRepository.registrarVoto(opcao, new EnqueteRepository.RegistrarVotoCallback() {
-            @Override
-            public void onVotoRegistrado(String opcaoRegistrada) {
-                txtSeuVoto.setText("Seu voto: opção " + opcaoRegistrada);
-                Toast.makeText(
-                        MainActivity.this,
-                        "Voto registrado.",
-                        Toast.LENGTH_SHORT
-                ).show();
+                //11 Exibe o UID anônimo, mesmo sem voto
+                if (auth.getCurrentUser() != null) {
+                    txtSeuUid.setText("Seu UID: " + auth.getCurrentUser().getUid());
+                } else {
+                    txtSeuUid.setText("Seu UID: não conectado");
+                }
             }
 
-            @Override
-            public void onJaVotou(String opcaoExistente) {
-                txtSeuVoto.setText("Seu voto: opção " + opcaoExistente);
-                Toast.makeText(
-                        MainActivity.this,
-                        "Você já votou.",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
-
+            // ATENÇÃO: Método onErro é OBRIGATÓRIO pelo callback
             @Override
             public void onErro(Exception e) {
-                Log.e(TAG, "Erro ao registrar voto: ", e);
-                Toast.makeText(
-                        MainActivity.this,
-                        "Erro ao registrar voto.",
-                        Toast.LENGTH_SHORT
-                ).show();
+                Log.e(TAG, "Erro ao carregar metadados do voto: ", e);
+                Toast.makeText(MainActivity.this,
+                        "Falha ao carregar dados do voto.",
+                        Toast.LENGTH_SHORT).show();
             }
-        });
-    }
+        }); // Fim do callback e do método carregarVotoUsuario()
+    } // Fim do método carregarVotoUsuario()
 
-    /**
-     * Exibe um diálogo pedindo o "código do professor" para autorizar o reset.
-     */
-    private void mostrarDialogoReset() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Zerar votos");
-        builder.setMessage("Digite o código do professor:");
 
-        final EditText input = new EditText(this);
-        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
-        builder.setView(input);
+                // =====================================================================
+                //  Ações da interface (votar e resetar enquete)
+                // =====================================================================
 
-        builder.setPositiveButton("Confirmar", (dialog, which) -> {
-            if ("1234".equals(input.getText().toString().trim())) {
-                resetarEnquete();
-            } else {
-                Toast.makeText(this, "Código incorreto.", Toast.LENGTH_SHORT).show();
-            }
-        });
+                /**
+                 * Configura os listeners dos botões da tela.
+                 */
+        private void configurarBotoes() {
+            btnVotarA.setOnClickListener(v -> registrarVoto("A"));
+            btnVotarB.setOnClickListener(v -> registrarVoto("B"));
+            btnVotarC.setOnClickListener(v -> registrarVoto("C"));
+            btnReset.setOnClickListener(v -> mostrarDialogoReset());
+        }
 
-        builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
-        builder.show();
-    }
+        /**
+         * Envia a opção selecionada para o EnqueteRepository registrar o voto.
+         */
+        ////////QUESTÃO01//////////////////
+        private void registrarVoto(String opcao) {
+            enqueteRepository.registrarVoto(opcao, new EnqueteRepository.RegistrarVotoCallback() {
+                ///onVotoRegistrado foi alterado para Garantir que a data/hora e o UID sejam recarregados e exibidos.
+                @Override
+                public void onVotoRegistrado(String opcaoRegistrada) {
+                   // txtSeuVoto.setText("Seu voto: opção " + opcaoRegistrada);
+                    //Chamamos carregarVotoUsuario() para recarregar o voto e exibir o novo
+                    // Timestamp e UID na tela imediatamente.
+                    carregarVotoUsuario();
+                    /////////////FIM DA QUESTÃO01////////////
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Voto registrado.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
 
-    /**
-     * Chama o repositório para zerar contadores e votos no Firestore.
-     */
-    private void resetarEnquete() {
-        enqueteRepository.resetarEnquete(new EnqueteRepository.OperacaoCallback() {
-            @Override
-            public void onSucesso() {
-                txtSeuVoto.setText("Seu voto: ainda não votou");
-                Toast.makeText(
-                        MainActivity.this,
-                        "Enquete zerada.",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
+                @Override
+                public void onJaVotou(String opcaoExistente) {
+                    txtSeuVoto.setText("Seu voto: opção " + opcaoExistente);
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Você já votou.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
 
-            @Override
-            public void onErro(Exception e) {
-                Log.e(TAG, "Erro ao resetar enquete: ", e);
-                Toast.makeText(
-                        MainActivity.this,
-                        "Erro ao zerar enquete.",
-                        Toast.LENGTH_SHORT
-                ).show();
-            }
-        });
-    }
-}
+                @Override
+                public void onErro(Exception e) {
+                    Log.e(TAG, "Erro ao registrar voto: ", e);
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Erro ao registrar voto.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            });
+        }
+
+        /**
+         * Exibe um diálogo pedindo o "código do professor" para autorizar o reset.
+         */
+        private void mostrarDialogoReset() {
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Zerar votos");
+            builder.setMessage("Digite o código do professor:");
+
+            final EditText input = new EditText(this);
+            input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            builder.setView(input);
+
+            builder.setPositiveButton("Confirmar", (dialog, which) -> {
+                if ("1234".equals(input.getText().toString().trim())) {
+                    resetarEnquete();
+                } else {
+                    Toast.makeText(this, "Código incorreto.", Toast.LENGTH_SHORT).show();
+                }
+            });
+
+            builder.setNegativeButton("Cancelar", (dialog, which) -> dialog.dismiss());
+            builder.show();
+        }
+
+        /**
+         * Chama o repositório para zerar contadores e votos no Firestore.
+         */
+
+        private void resetarEnquete() {
+            enqueteRepository.resetarEnquete(new EnqueteRepository.OperacaoCallback() {
+
+                @Override
+                public void onSucesso() {
+                    //txtSeuVoto.setText("Seu voto: ainda não votou");
+
+
+                  //////QUESTÃO01/////////////////
+                    //Chamamos carregarVotoUsuario() para atualizar todos os campos
+                    // e garantir que o estado "ainda não votou" seja exibido.
+                    carregarVotoUsuario();
+   /////////////////////// FIM QUESTÃO01///////////////////////////////////
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Enquete zerada.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+
+                @Override
+                public void onErro(Exception e) {
+                    Log.e(TAG, "Erro ao resetar enquete: ", e);
+                    Toast.makeText(
+                            MainActivity.this,
+                            "Erro ao zerar enquete.",
+                            Toast.LENGTH_SHORT
+                    ).show();
+                }
+            });
+        }
+    };
+
+
+
+
