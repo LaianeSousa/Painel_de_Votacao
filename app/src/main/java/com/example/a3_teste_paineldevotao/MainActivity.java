@@ -28,6 +28,7 @@ import com.example.a3_teste_paineldevotao.model.Enquete;
 import com.example.a3_teste_paineldevotao.HistoricoLogsActivity;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.firebase.Timestamp;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.firestore.ListenerRegistration;
 
@@ -272,14 +273,6 @@ public class MainActivity extends AppCompatActivity {
         // Carrega voto do usuário
         carregarVotoUsuario();
 
-        // Preenche UID se o campo existir (Q1)
-        if (txtSeuUid != null && auth.getCurrentUser() != null) {
-            txtSeuUid.setText("ID: " + auth.getCurrentUser().getUid());
-        }
-        // preencher txtDataVoto
-        if (txtDataVoto != null) {
-            txtDataVoto.setText("Data: " + new Date().toString());
-        }
     }
 
     private void configurarListenerResultados() {
@@ -397,42 +390,75 @@ public class MainActivity extends AppCompatActivity {
      * Carrega voto e preenche os metadados do dispositivo (Q2).
      */
     private void carregarVotoUsuario() {
-        enqueteRepository.carregarVotoUsuario(new EnqueteRepository.VotoUsuarioCallback() {
-            @Override
-            public void onVotoCarregado(String opcao, String modelo, String versaoAndroid) {
-                votoDoUsuario = opcao;
-                final String traco = "—";
+        // Caso sua interface VotoUsuarioCallback exija o método de erro:
+// @Override public void onErro(Exception e) { ... }
+        enqueteRepository.carregarVotoUsuario((opcao, modelo, versaoAndroid) -> {
+            votoDoUsuario = opcao;
+            final String traco = "—";
+            onMetadadosCarregados();
 
-                if (opcao != null) {
-                    txtSeuVoto.setText("Seu voto: opção " + opcao);
+            if (opcao != null) {
+                txtSeuVoto.setText("Seu voto: opção " + opcao);
 
-                    // Q2: Exibe metadados salvos
-                    if(txtModeloDispositivo != null)
-                        txtModeloDispositivo.setText("Modelo: " + (modelo != null ? modelo : traco));
-                    if(txtVersaoAndroid != null)
-                        txtVersaoAndroid.setText("Android: " + (versaoAndroid != null ? versaoAndroid : traco));
+                // Q2: Exibe metadados salvos
+                if(txtModeloDispositivo != null)
+                    txtModeloDispositivo.setText("Modelo: " + (modelo != null ? modelo : traco));
+                if(txtVersaoAndroid != null)
+                    txtVersaoAndroid.setText("Android: " + (versaoAndroid != null ? versaoAndroid : traco));
 
-                    // Se já votou, bloqueia botões (a validação de encerramento pode sobrescrever isso depois)
-                    setBotoesVotoEnabled(false);
-                } else {
-                    txtSeuVoto.setText("Seu voto: ainda não votou");
+                // Se já votou, bloqueia botões (a validação de encerramento pode sobrescrever isso depois)
+                setBotoesVotoEnabled(false);
+            } else {
+                txtSeuVoto.setText("Seu voto: ainda não votou");
 
-                    // Q2: Exibe metadados atuais do dispositivo
-                    if(txtModeloDispositivo != null)
-                        txtModeloDispositivo.setText("Modelo: " + android.os.Build.MODEL);
-                    if(txtVersaoAndroid != null)
-                        txtVersaoAndroid.setText("Android: " + android.os.Build.VERSION.RELEASE);
+                // Q2: Exibe metadados atuais do dispositivo
+                if(txtModeloDispositivo != null)
+                    txtModeloDispositivo.setText("Modelo: " + android.os.Build.MODEL);
+                if(txtVersaoAndroid != null)
+                    txtVersaoAndroid.setText("Android: " + android.os.Build.VERSION.RELEASE);
 
-                    setBotoesVotoEnabled(true);
-                }
-
-                // Atualiza UI geral para checar se a votação encerrou
-                if (enqueteAtual != null) {
-                    atualizarUIComEnquete(enqueteAtual);
-                }
+                setBotoesVotoEnabled(true);
             }
-            // Caso sua interface VotoUsuarioCallback exija o método de erro:
-            // @Override public void onErro(Exception e) { ... }
+
+            // Atualiza UI geral para checar se a votação encerrou
+            if (enqueteAtual != null) {
+                atualizarUIComEnquete(enqueteAtual);
+            }
+
+
+        });
+    }
+    public void onMetadadosCarregados(){
+        enqueteRepository.carregarMetadadosVotoUsuario(new EnqueteRepository.VotoMetadadosCallback() {
+            @Override
+            public void onMetadadosCarregados(String opcaoVoto, Timestamp timestamp, String uid) {
+                String dataFormatada = DATE_FORMAT.format(timestamp.toDate());
+                txtSeuVoto.setText("Seu voto: opção " + opcaoVoto);
+                txtDataVoto.setText("Data: " + dataFormatada);
+                txtSeuUid.setText("ID: " + uid);
+            }
+
+            @Override
+            public void onNaoVotou() {
+                txtSeuVoto.setText("Seu voto: ainda não votou");
+                txtDataVoto.setText("Data: -");
+
+                // exibe o UID anônimo mesmo sem voto
+                if (auth.getCurrentUser() != null){
+                    txtSeuUid.setText("Seu UID: " + auth.getCurrentUser().getUid());
+                } else{
+                    txtSeuUid.setText("Seu UID: não conectado");
+                }
+
+            }
+
+
+            @Override
+            public void onErro(Exception e) {
+                Log.e(TAG, "Erro ao carregar metadados do voto: ", e);
+
+            }
+
         });
     }
 

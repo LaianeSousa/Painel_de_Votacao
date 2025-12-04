@@ -316,9 +316,9 @@ public class EnqueteRepository {
             return;
             //Sai imediatamente do método, encerrando a execução.
         }
-//Se o usuário estiver logado,obtém o UID exclusivo do usuário anônimo. O uso de final
-// garante que essa variável seja acessível dentro do bloco assíncrono (addOnSuccessListener)
-// logo abaixo.
+        //Se o usuário estiver logado,obtém o UID exclusivo do usuário anônimo. O uso de final
+        // garante que essa variável seja acessível dentro do bloco assíncrono (addOnSuccessListener)
+        // logo abaixo.
         final String uid = firebaseManager.getAuth().getCurrentUser().getUid(); // <--- Variável 'uid' declarada AQUI!
         // Comentário (Requisito 8): Acessa a subcoleção "votos" usando o UID como ID do documento
         firebaseManager.getEnqueteRef() //Obtém a referência ao documento principal da enquete
